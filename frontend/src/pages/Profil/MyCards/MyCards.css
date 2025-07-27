@@ -1,0 +1,121 @@
+.my-cards-container {
+  max-width: 400px;
+  margin: 1.5rem auto;
+  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+  color: #2c2c2c;
+  padding: 0 0.75rem;
+}
+
+.my-cards-container h2 {
+  font-weight: 700;
+  font-size: 1.4rem;
+  margin-bottom: 1rem;
+  text-align: center;
+  color: #4b3f72;
+  text-shadow: 0 1px 2px rgba(75, 63, 114, 0.6);
+}
+
+.loading-text,
+.empty-text {
+  text-align: center;
+  color: #7a7a7a;
+  font-style: italic;
+  margin-top: 2rem;
+}
+
+.cards-list {
+  list-style: none;
+  padding: 0;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px;
+}
+
+.card-item {
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  border-radius: 12px;
+  padding: 14px 18px;
+  box-shadow: 0 6px 15px rgba(102, 126, 234, 0.35);
+  color: white;
+  cursor: default;
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
+  outline-offset: 3px;
+  outline-color: transparent;
+  outline-style: solid;
+  user-select: none;
+}
+
+.card-item:focus,
+.card-item:hover {
+  transform: translateY(-6px) rotateX(4deg);
+  box-shadow: 0 12px 25px rgba(118, 75, 162, 0.6);
+  outline-color: #a49de8;
+}
+
+.card-content {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.card-type {
+  font-weight: 700;
+  font-size: 1rem;
+  letter-spacing: 1.1px;
+  text-shadow: 0 0 4px rgba(255, 255, 255, 0.3);
+}
+
+.card-holder {
+  font-size: 0.85rem;
+  opacity: 0.9;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+}
+
+.card-number {
+  font-size: 1.1rem;
+  font-weight: 600;
+  letter-spacing: 2.5px;
+  margin-top: 3px;
+  font-family: "Courier New", Courier, monospace;
+  text-shadow: 0 1px 1.5px rgba(0, 0, 0, 0.2);
+}
+
+.card-expiry {
+  font-size: 0.75rem;
+  color: #d1c4e9cc;
+  margin-top: 3px;
+  font-style: italic;
+}
+
+.btn-delete {
+  background-color: transparent;
+  border: none;
+  color: #ff6b6b;
+  font-size: 1.2rem;
+  padding: 4px 6px;
+  border-radius: 50%;
+  transition: color 0.25s ease, transform 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.btn-delete:hover,
+.btn-delete:focus {
+  color: #ff3b3b;
+  transform: scale(1.2);
+  outline: none;
+}
+@media (max-width: 400px) {
+  .my-cards-container {
+    max-width: 100%;
+    padding: 0 1rem;
+  }
+}

@@ -1,0 +1,34 @@
+
+
+.error-message {
+    background-color: #fff; /* Beyaz arka plan */
+    border: 1px solid #dc3545; /* Kırmızı kenar */
+    border-radius: 8px; /* Yuvarlatılmış köşeler */
+    padding: 20px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); /* Hafif gölge */
+    text-align: center;
+  
+}
+
+.error-message h1 {
+    color: #dc3545; /* Kırmızı başlık */
+    margin-bottom: 10px;
+}
+
+.error-message p {
+    margin-bottom: 20px;
+}
+
+.btn {
+    background-color: #007bff; /* Mavi buton */
+    color: white; /* Beyaz metin */
+    border: none;
+    border-radius: 5px; /* Yuvarlatılmış köşeler */
+    padding: 10px 20px; /* İç boşluk */
+    cursor: pointer; /* İmleç değişimi */
+    transition: background-color 0.3s; /* Geçiş efekti */
+}
+
+.btn:hover {
+    background-color: #0056b3; /* Buton üzerine gelindiğinde daha koyu mavi */
+}

@@ -1,0 +1,100 @@
+/* Reviews.css */
+
+.tab-panel-reviews {
+    padding: 1rem;
+    font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+    background-color: #f9fafb;
+    color: #1f2937; /* Koyu gri */
+  }
+  
+  .tab-panel-reviews h3 {
+    font-size: 1.5rem;
+    font-weight: 700;
+    margin-bottom: 1rem;
+  }
+  
+  .review-summary {
+    margin-bottom: 1.5rem;
+    font-weight: 600;
+    color: #111827;
+  }
+  
+  .comments {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+  
+  .comment-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+  }
+  
+  .comment {
+    background-color: #ffffff;
+    border: 1px solid #e5e7eb; /* açık gri */
+    border-radius: 12px;
+    padding: 1rem 1.25rem;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
+    transition: box-shadow 0.3s ease;
+  }
+  
+  .comment:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+  }
+  
+  .comment-meta {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.75rem;
+    font-weight: 600;
+    color: #374151; /* koyu gri */
+    font-size: 1rem;
+  }
+  
+  .rating-stars {
+    color: #fbbf24; /* sarı ton */
+    font-size: 1.2rem;
+    user-select: none;
+  }
+  
+  .comment-content p {
+    color: #4b5563; /* orta koyu gri */
+    line-height: 1.6;
+    white-space: pre-wrap;
+    font-size: 0.95rem;
+    margin: 0;
+  }
+  
+  .comment-content span.continue-link {
+    color: #3b82f6; /* mavi */
+    cursor: pointer;
+    margin-left: 0.4rem;
+    font-weight: 600;
+    user-select: none;
+    transition: color 0.2s ease;
+  }
+  
+  .comment-content span.continue-link:hover {
+    color: #2563eb;
+  }
+  
+  .comment-content button.collapse-btn {
+    margin-top: 0.4rem;
+    font-size: 0.85rem;
+    color: #2563eb;
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-weight: 600;
+    padding: 0;
+    user-select: none;
+    transition: color 0.2s ease;
+  }
+  
+  .comment-content button.collapse-btn:hover {
+    color: #1d4ed8;
+  }
+  

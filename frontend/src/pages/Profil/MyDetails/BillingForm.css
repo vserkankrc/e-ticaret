@@ -1,0 +1,75 @@
+/* Form container */
+.billing-form {
+  max-width: 600px;
+  margin: 0 auto;
+  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+  color: #333;
+}
+
+/* Radio button alanları */
+.billing-type-selection {
+  margin-bottom: 20px;
+  font-weight: 600;
+}
+
+.billing-type-selection label {
+  margin-right: 30px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.billing-type-selection input[type="radio"] {
+  margin-right: 8px;
+  cursor: pointer;
+}
+
+/* Genel input ve select stilleri */
+.billing-form label {
+  display: block;
+  margin-bottom: 6px;
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.billing-form input[type="text"],
+.billing-form input[type="tel"],
+.billing-form select,
+.billing-form textarea {
+  width: 100%;
+  padding: 8px 10px;
+  font-size: 15px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  box-sizing: border-box;
+  transition: border-color 0.2s ease-in-out;
+}
+
+.billing-form input[type="text"]:focus,
+.billing-form input[type="tel"]:focus,
+.billing-form select:focus,
+.billing-form textarea:focus {
+  outline: none;
+  border-color: #40a9ff; /* Ant Design mavi tonuna uyumlu */
+  box-shadow: 0 0 5px rgba(24, 144, 255, 0.5);
+}
+
+/* Textarea için biraz daha yüksek */
+.billing-form textarea {
+  resize: vertical;
+  min-height: 60px;
+}
+
+/* Hata mesajı */
+.error-message {
+  color: #ff4d4f;
+  font-size: 13px;
+  margin-top: 4px;
+  font-weight: 600;
+}
+
+/* Form alanları arasındaki boşluk */
+.form-group {
+  margin-bottom: 16px;
+}
+
+

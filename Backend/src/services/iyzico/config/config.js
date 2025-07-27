@@ -1,0 +1,6 @@
+// config.js
+export default {
+  apiKey: "sandbox-0sWx2X7xVgiENBQzPb8yend1l4SkMiut",
+  secretKey: "sandbox-XyWlihcMiVZCMCS9GIuSej0rSfOywJJe",
+  uri: "https://sandbox-api.iyzipay.com",
+};

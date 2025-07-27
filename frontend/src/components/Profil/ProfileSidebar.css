@@ -1,0 +1,37 @@
+.profile-sidebar {
+    width: 220px;
+    background: #fff;
+    border-right: 1px solid #ddd;
+    padding: 1rem;
+  }
+  
+  .profile-sidebar h2 {
+    font-size: 1.3rem;
+    margin-bottom: 1rem;
+  }
+  
+  .profile-menu {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+  }
+  
+  .profile-menu li {
+    padding: 10px 12px;
+    cursor: pointer;
+    border-radius: 6px;
+    margin-bottom: 5px;
+    transition: background 0.2s ease;
+  }
+  
+  .profile-menu li:hover {
+    background-color: #f0f0f0;
+  }
+  
+  .profile-menu li.active {
+    background-color: #f2f7ff;
+    font-weight: bold;
+    color: #0050b3;
+  }
+  
+  

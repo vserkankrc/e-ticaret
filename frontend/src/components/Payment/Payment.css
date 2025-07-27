@@ -1,0 +1,108 @@
+/* Genel sayfa düzeni */
+.payment-page {
+  padding: 2rem;
+  display: flex;
+  justify-content: center;
+  background-color: #f9f9f9;
+}
+
+/* 2 sütunlu grid yapısı */
+.payment-grid {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 2rem;
+  max-width: 1200px;
+  width: 100%;
+}
+
+/* Sol sütun: adres, kart, form */
+.payment-left {
+  background: #fff;
+  padding: 2rem;
+  border-radius: 12px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.06);
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+/* Sağ sütun: sipariş özeti */
+.payment-right {
+  background: #fff;
+  padding: 2rem;
+  border-radius: 12px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.06);
+  height: fit-content;
+}
+
+/* Kart form alanı */
+.card-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.card-form input {
+  flex: 1 1 30%;
+  min-width: 140px;
+  padding: 10px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-size: 14px;
+}
+
+/* Satış sözleşmesi checkbox */
+.contract-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 14px;
+}
+
+/* Submit butonu */
+.payment-submit-btn {
+  background-color: #ccc;
+  color: white;
+  border: none;
+  padding: 0.8rem 1.5rem;
+  border-radius: 8px;
+  cursor: not-allowed;
+  font-weight: 600;
+  font-size: 16px;
+  transition: background-color 0.3s ease;
+}
+
+.payment-submit-btn:enabled {
+  background-color: #0071e3;
+  cursor: pointer;
+}
+
+/* Sipariş özeti yazı stilleri */
+.order-summary {
+  font-size: 16px;
+  color: #333;
+}
+
+.order-summary h3 {
+  font-size: 20px;
+  font-weight: 600;
+  margin-bottom: 1rem;
+}
+
+.order-summary ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.order-summary li {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 0.5rem;
+}
+
+.order-summary .total {
+  font-weight: bold;
+  font-size: 18px;
+  margin-top: 1rem;
+}

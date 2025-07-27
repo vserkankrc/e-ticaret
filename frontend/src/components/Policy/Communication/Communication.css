@@ -1,0 +1,105 @@
+.Communication-policy{
+    background: #fff;
+    border: 1px solid #e6e6e6;
+    border-radius: 8px;
+    color: #333;
+    font-size: 18px;
+    font-weight: 600;
+    line-height: 22px;
+    padding: 16px;
+    margin: 50px;
+}
+.Communication-policy .Communication-title{
+    background: #fff;
+    border: 1px solid #e6e6e6;
+    border-radius: 8px;
+    color: #333;
+    font-size: 18px;
+    font-weight: 600;
+    line-height: 22px;
+    margin-bottom: 20px;
+    padding: 16px;
+}
+.Communication-policy .Communication-title h5{
+    align-items: center;
+    display: flex;
+    justify-content: center;
+}
+
+.Communication-policy .Communication-content-all{
+    display: flex;
+}
+
+.Communication-policy .Communication-content-left{
+    background: #fff;
+    border: 1px solid #e6e6e6;
+    border-radius: 8px;
+    color: #333;
+    font-size: 18px;
+    font-weight: 600;
+    line-height: 22px;
+    margin-bottom: 20px;
+    padding: 16px;
+    width: 100%;
+    margin-right: 15px;
+
+}
+.Communication-policy .Communication-content-right{
+    background: #fff;
+    border: 1px solid #e6e6e6;
+    border-radius: 8px;
+    color: #333;
+    font-size: 18px;
+    font-weight: 600;
+    line-height: 22px;
+    margin-bottom: 20px;
+    padding: 16px;
+    width: 100%;
+    margin-left: 15px;
+}
+.Communication-policy .Communication-content-left h4{
+justify-content: center;
+display: flex;
+}
+.Communication-policy .Communication-content-left P{
+    font-weight: 500;
+    font-family: 'Times New Roman', Times, serif;
+    margin-top: 10px;
+    margin-bottom: 15px;
+    margin-left: 5px;
+    
+}
+.Communication-policy .Communication-content-left b{
+    font-weight: 600;
+    font-family: 'Times New Roman', Times, serif;
+    margin-top: 10px;
+    margin-bottom: 15px;
+    margin-left: 5px;
+    
+}
+.Communication-policy .Communication-content-right h4{
+    justify-content: center;
+    display: flex;
+    }
+    .Communication-policy .Communication-content-right P{
+        font-weight: 500;
+        font-family: 'Times New Roman', Times, serif;
+        margin-top: 10px;
+        margin-bottom: 15px;
+        margin-left: 5px;
+    }
+    .Communication-policy .Communication-content-right button{
+        background-color: #E15B2E;
+        border-radius: 4px;
+        color: #fff;
+        font-size: 16px;
+        font-weight: 600;
+        padding: 10px 20px;
+        text-align: center;
+        display: flex;
+        cursor: pointer;
+        justify-content: center;
+        margin-left: 25%;
+        
+    }
+

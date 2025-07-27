@@ -1,0 +1,19 @@
+.cart-totals {
+    border: 1px solid #ddd;
+    padding: 1.5rem;
+    border-radius: 8px;
+    background-color: #fff;
+  }
+  
+  .free-shipping {
+    color: green;
+    font-weight: 600;
+  }
+  
+  .empty-cart-message {
+    padding: 2rem;
+    font-size: 1.2rem;
+    text-align: center;
+    background-color: #f9f9f9;
+  }
+  
