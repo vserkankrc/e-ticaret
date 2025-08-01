@@ -11,7 +11,7 @@ import { AuthContext } from "../../../context/AuthContext.jsx";
 import PhoneInput from "../../common/PhoneInput.jsx";
 import { GoogleLogin } from "@react-oauth/google";
 import * as jwtDecode from "jwt-decode";
-import "./Register.css";
+import "./register.css";
 
 const Register = () => {
   const navigate = useNavigate();
