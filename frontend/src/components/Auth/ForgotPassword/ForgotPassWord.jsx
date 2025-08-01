@@ -1,7 +1,7 @@
 import { useState } from "react";
 import axios from "axios";
 import { message } from "antd";
-import "./ForgotPassword.css";
+import "./ForgotPassWord.css";
 
 const ForgotPassword = () => {
   const apiUrl = import.meta.env.VITE_API_BASE_URL;
