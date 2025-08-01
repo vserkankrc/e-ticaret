@@ -19,7 +19,6 @@ import Session from "./src/middlewares/Session.js";
 import cookieParser from "cookie-parser";
 import { fileURLToPath } from "url";
 
-
 // ✅ Environment dosyası düzgün yükleniyor mu kontrolü:
 const envPath = config?.production ? "./env/.prod" : "./env/.dev";
 dotenv.config({ path: envPath });
@@ -46,7 +45,7 @@ app.use(logger(process.env.LOGGER || "dev"));
 app.use(helmet());
 app.use(
   cors({
-    origin: "http://localhost:5173", // Frontend URL
+    origin: process.env.CORS_ORIGIN || "http://localhost:5173", // Render için güncellendi
     credentials: true,
   })
 );
@@ -107,6 +106,8 @@ app.all("/test-auth", Session, (req, res) => {
 app.use(GenericErrorHandler);
 
 // ✅ HTTPS kontrolü
+const PORT = process.env.PORT || 3000;
+
 if (process.env.HTTPS_ENABLED === "true") {
   const key = fs.readFileSync(path.join(__dirname, "./src/certs/key.pem")).toString();
   const cert = fs.readFileSync(path.join(__dirname, "./src/certs/cert.pem")).toString();
@@ -115,12 +116,12 @@ if (process.env.HTTPS_ENABLED === "true") {
 
   https
     .createServer({ key, cert }, app)
-    .listen(process.env.PORT, () => {
-      console.log(`🔐 HTTPS sunucu çalışıyor → https://localhost:${process.env.PORT}`);
+    .listen(PORT, "0.0.0.0", () => {
+      console.log(`🔐 HTTPS sunucu çalışıyor → https://0.0.0.0:${PORT}`);
     });
 } else {
-  app.listen(process.env.PORT, () => {
+  app.listen(PORT, "0.0.0.0", () => {
     connect();
-    console.log(`🚀 Sunucu çalışıyor → http://localhost:${process.env.PORT}`);
+    console.log(`🚀 Sunucu çalışıyor → http://0.0.0.0:${PORT}`);
   });
 }
