@@ -1,7 +1,8 @@
 MONGO_URI=mongodb+srv://serkankrc:v2X5XfpXssdrbdQb@eticaret.v6nmq.mongodb.net/eticaret
 DEPLOYMENT=DEVELOPMENT
+CORS_ORIGIN=http://localhost:5173
+PORT=3000
 HTTPS_ENABLED=false
-PORT=443
 LOGGER=dev
 JWT_SECRET=DFSKSMADLKNELAKSMNDSMDMSAKSD_SASFEASDC
 EMAIL_USER=veliserkankaraca@gmail.com
