@@ -1,7 +1,6 @@
 import express from "express";
 import Users from "../models/Users.js";
-import bcrypt from "bcrypt";
-import ApiError from "../error/ApiError.js";
+import bcrypt from 'bcryptjs';import ApiError from "../error/ApiError.js";
 import jwt from "jsonwebtoken";
 
 const router = express.Router();

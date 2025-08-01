@@ -1,6 +1,5 @@
 import mongoose from "mongoose";
-import bcrypt from "bcrypt";
-import nanoid from "../utils/nanoid.js";
+import bcrypt from 'bcryptjs';import nanoid from "../utils/nanoid.js";
 
 const {Schema} = mongoose;
 const {ObjectId} = Schema.Types;
