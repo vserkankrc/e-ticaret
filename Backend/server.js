@@ -44,7 +44,7 @@ app.use(logger(process.env.LOGGER || "dev"));
 app.use(helmet());
 app.use(
   cors({
-    origin: process.env.CORS_ORIGIN || "http://localhost:5173", // Frontend URL burada olmalı
+    origin: process.env.CORS_ORIGIN, // Frontend URL burada olmalı
     credentials: true,
   })
 );
@@ -109,6 +109,7 @@ if (process.env.HTTPS_ENABLED === "true") {
     .createServer({ key, cert }, app)
     .listen(PORT, HOST, () => {
       console.log(`🔐 HTTPS sunucu çalışıyor → https://${HOST}:${PORT}`);
+      
     });
 } else {
   app.listen(PORT, HOST, () => {
