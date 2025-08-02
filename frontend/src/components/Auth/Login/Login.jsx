@@ -1,32 +1,27 @@
 import { useState, useContext } from "react";
-import axios from "axios";
 import { useNavigate } from "react-router-dom";
-import "./Login.css";
 import { EyeOutlined, EyeInvisibleOutlined } from "@ant-design/icons";
 import { message } from "antd";
-import { AuthContext } from "../../../context/AuthContext.jsx"; // AuthContext import
+import { AuthContext } from "../../../context/AuthContext.jsx";
+import api from "../../../utils/axios.js"; // ⬅️ Buraya dikkat
+
+import "./Login.css";
 
 // eslint-disable-next-line react/prop-types
 const Login = ({ onSwitch, onForgot }) => {
-  const apiUrl = import.meta.env.VITE_API_BASE_URL;
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const navigate = useNavigate();
-
-  const { login } = useContext(AuthContext); // login fonksiyonunu al
+  const { login } = useContext(AuthContext);
 
   const handleLogin = async (e) => {
     e.preventDefault();
     try {
-      const res = await axios.post(
-        `${apiUrl}/api/auth/login`,
-        { email, password },
-        { withCredentials: true }
-      );
+      const res = await api.post("/api/auth/login", { email, password });
 
       if (res.data.user) {
-        login(res.data.user);           // Burada login fonksiyonunu çağırıyoruz
+        login(res.data.user);
         message.success("Giriş başarılı!");
         navigate("/");
       } else {
