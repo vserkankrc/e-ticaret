@@ -93,15 +93,18 @@ router.post("/login", async (req, res) => {
     res
       .cookie("token", token, {
         httpOnly: true,
-        secure: true,
-        sameSite: "None",
-        path: "/",
-        
+        secure: process.env.NODE_ENV === "production",
+        sameSite: process.env.NODE_ENV === "production" ? "None" : "Lax",
+        maxAge: 60 * 60 * 1000, // 1 saat
       })
+
       .status(200)
       .json({
         user: { _id: userJson._id, email: userJson.email, role: userJson.role },
       });
+    console.log(user);
+
+    console.log(token);
   } catch (error) {
     console.log(error);
     if (error instanceof ApiError) {
