@@ -6,7 +6,7 @@ Object.defineProperty(exports, "__esModule", {
 exports.default = void 0;
 var _express = _interopRequireDefault(require("express"));
 var _Users = _interopRequireDefault(require("../models/Users.js"));
-var _bcrypt = _interopRequireDefault(require("bcrypt"));
+var _bcryptjs = _interopRequireDefault(require("bcryptjs"));
 var _ApiError = _interopRequireDefault(require("../error/ApiError.js"));
 var _jsonwebtoken = _interopRequireDefault(require("jsonwebtoken"));
 function _interopRequireDefault(e) { return e && e.__esModule ? e : { default: e }; }
@@ -31,7 +31,7 @@ router.post("/register", async (req, res, next) => {
     if (existingUser) {
       return next(_ApiError.default.badRequest("Bu e-posta zaten kullanılıyor."));
     }
-    const hashedPassword = await _bcrypt.default.hash(password, 10);
+    const hashedPassword = await _bcryptjs.default.hash(password, 10);
     const newUser = new _Users.default({
       name,
       surname,
@@ -49,8 +49,8 @@ router.post("/register", async (req, res, next) => {
     res.cookie("token", token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
-      sameSite: "strict",
-      maxAge: 60 * 60 * 1000
+      sameSite: process.env.NODE_ENV === "production" ? "None" : "Lax",
+      maxAge: 60 * 60 * 1000 // 1 saat
     }).status(201).json({
       token: `Bearer ${token}`,
       user: {
@@ -80,7 +80,7 @@ router.post("/login", async (req, res) => {
     if (!user) {
       throw new _ApiError.default("E-mail veya şifre hatalı", 401, "E-mail veya şifre hatalı");
     }
-    const isValidPassword = await _bcrypt.default.compare(password, user.password);
+    const isValidPassword = await _bcryptjs.default.compare(password, user.password);
     if (!isValidPassword) {
       throw new _ApiError.default("E-mail veya şifre hatalı", 401, "E-mail veya şifre hatalı");
     }
@@ -91,9 +91,8 @@ router.post("/login", async (req, res) => {
     res.cookie("token", token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
-      sameSite: process.env.NODE_ENV === "production" ? "strict" : "lax",
-      path: "/",
-      maxAge: 60 * 60 * 1000 // 1 saat
+      sameSite: process.env.NODE_ENV === "production" ? "None" : "Lax",
+      path: "/"
     }).status(200).json({
       user: {
         _id: userJson._id,
@@ -158,7 +157,7 @@ router.post("/logout", (req, res) => {
   res.clearCookie("token", {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
-    sameSite: "strict"
+    sameSite: process.env.NODE_ENV === "production" ? "None" : "Lax"
   });
   res.status(200).json({
     message: "Çıkış başarılı."
@@ -172,8 +171,6 @@ router.put("/change-password", async (req, res, next) => {
       currentPassword,
       newPassword
     } = req.body;
-
-    // Cookie'den direkt token alıyoruz, Bearer yok
     const token = req.cookies.token;
     if (!token) {
       return next(_ApiError.default.Unauthorized("Yetkisiz işlem. Giriş yapmalısınız."));
@@ -188,11 +185,11 @@ router.put("/change-password", async (req, res, next) => {
     if (!user) {
       return next(_ApiError.default.NotFound("Kullanıcı bulunamadı."));
     }
-    const isMatch = await _bcrypt.default.compare(currentPassword, user.password);
+    const isMatch = await _bcryptjs.default.compare(currentPassword, user.password);
     if (!isMatch) {
       return next(_ApiError.default.BadRequest("Mevcut şifre hatalı."));
     }
-    const hashedPassword = await _bcrypt.default.hash(newPassword, 10);
+    const hashedPassword = await _bcryptjs.default.hash(newPassword, 10);
     user.password = hashedPassword;
     await user.save();
     res.status(200).json({
@@ -219,32 +216,24 @@ router.post("/google", async (req, res, next) => {
       email
     });
     if (!user) {
-      // Yeni OAuth kullanıcısı oluştur
       user = new _Users.default({
         name,
         surname,
         email,
-        isOAuthUser: true // Google ile oluşturulduğunu işaretle
+        isOAuthUser: true
       });
       await user.save();
-    } else {
-      // Mevcut kullanıcı var, Google OAuth kullanan biri ise ekstra kontroller yapabilirsin
-      // Örneğin, isOAuthUser değilse klasik kullanıcıdır, dilersen özel işlem yapabilirsin
     }
-
-    // Token üret
     const token = _jsonwebtoken.default.sign({
       _id: user._id,
       email: user.email
     }, process.env.JWT_SECRET, {
       expiresIn: "1h"
     });
-
-    // Token'ı cookie'ye koy, response dön
     res.cookie("token", token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
-      sameSite: "strict",
+      sameSite: process.env.NODE_ENV === "production" ? "None" : "Lax",
       maxAge: 60 * 60 * 1000
     }).status(200).json({
       token: `Bearer ${token}`,

@@ -5,7 +5,7 @@ Object.defineProperty(exports, "__esModule", {
 });
 exports.default = void 0;
 var _mongoose = _interopRequireDefault(require("mongoose"));
-var _bcrypt = _interopRequireDefault(require("bcrypt"));
+var _bcryptjs = _interopRequireDefault(require("bcryptjs"));
 var _nanoid = _interopRequireDefault(require("../utils/nanoid.js"));
 function _interopRequireDefault(e) { return e && e.__esModule ? e : { default: e }; }
 const {
