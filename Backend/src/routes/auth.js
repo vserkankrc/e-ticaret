@@ -96,7 +96,7 @@ router.post("/login", async (req, res) => {
         secure: process.env.NODE_ENV === "production",
         sameSite: process.env.NODE_ENV === "production" ? "None" : "Lax",
         path: "/",
-        maxAge: 60 * 60 * 1000, // 1 saat
+        
       })
       .status(200)
       .json({
