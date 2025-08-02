@@ -1,6 +1,7 @@
 import express from "express";
 import Users from "../models/Users.js";
-import bcrypt from 'bcryptjs';import ApiError from "../error/ApiError.js";
+import bcrypt from "bcryptjs";
+import ApiError from "../error/ApiError.js";
 import jwt from "jsonwebtoken";
 
 const router = express.Router();
@@ -41,8 +42,8 @@ router.post("/register", async (req, res, next) => {
       .cookie("token", token, {
         httpOnly: true,
         secure: process.env.NODE_ENV === "production",
-        sameSite: "strict",
-        maxAge: 60 * 60 * 1000,
+        sameSite: process.env.NODE_ENV === "production" ? "None" : "Lax",
+        maxAge: 60 * 60 * 1000, // 1 saat
       })
       .status(201)
       .json({
@@ -93,8 +94,7 @@ router.post("/login", async (req, res) => {
       .cookie("token", token, {
         httpOnly: true,
         secure: process.env.NODE_ENV === "production",
-        sameSite: process.env.NODE_ENV === "production" ? "strict" : "lax",
-
+        sameSite: process.env.NODE_ENV === "production" ? "None" : "Lax",
         path: "/",
         maxAge: 60 * 60 * 1000, // 1 saat
       })
@@ -151,7 +151,7 @@ router.post("/logout", (req, res) => {
   res.clearCookie("token", {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
-    sameSite: "strict",
+    sameSite: process.env.NODE_ENV === "production" ? "None" : "Lax",
   });
   res.status(200).json({ message: "Çıkış başarılı." });
 });
@@ -161,7 +161,6 @@ router.put("/change-password", async (req, res, next) => {
   try {
     const { currentPassword, newPassword } = req.body;
 
-    // Cookie'den direkt token alıyoruz, Bearer yok
     const token = req.cookies.token;
     if (!token) {
       return next(ApiError.Unauthorized("Yetkisiz işlem. Giriş yapmalısınız."));
@@ -201,7 +200,6 @@ router.put("/change-password", async (req, res, next) => {
   }
 });
 
-
 // Google ile Giriş (OAuth)
 router.post("/google", async (req, res, next) => {
   try {
@@ -214,33 +212,27 @@ router.post("/google", async (req, res, next) => {
     let user = await Users.findOne({ email });
 
     if (!user) {
-      // Yeni OAuth kullanıcısı oluştur
       user = new Users({
         name,
         surname,
         email,
-        isOAuthUser: true, // Google ile oluşturulduğunu işaretle
+        isOAuthUser: true,
       });
 
       await user.save();
-    } else {
-      // Mevcut kullanıcı var, Google OAuth kullanan biri ise ekstra kontroller yapabilirsin
-      // Örneğin, isOAuthUser değilse klasik kullanıcıdır, dilersen özel işlem yapabilirsin
     }
 
-    // Token üret
     const token = jwt.sign(
       { _id: user._id, email: user.email },
       process.env.JWT_SECRET,
       { expiresIn: "1h" }
     );
 
-    // Token'ı cookie'ye koy, response dön
     res
       .cookie("token", token, {
         httpOnly: true,
         secure: process.env.NODE_ENV === "production",
-        sameSite: "strict",
+        sameSite: process.env.NODE_ENV === "production" ? "None" : "Lax",
         maxAge: 60 * 60 * 1000,
       })
       .status(200)
@@ -260,6 +252,5 @@ router.post("/google", async (req, res, next) => {
     return next(ApiError.internal("Google ile giriş yapılamadı."));
   }
 });
-
 
 export default router;

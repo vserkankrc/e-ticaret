@@ -19,7 +19,7 @@ const Login = ({ onSwitch, onForgot }) => {
     e.preventDefault();
     try {
       const res = await api.post("/api/auth/login", { email, password });
-
+      
       if (res.data.user) {
         login(res.data.user);
         message.success("Giriş başarılı!");
