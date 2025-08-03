@@ -42,8 +42,10 @@ router.post("/register", async (req, res, next) => {
       .cookie("token", token, {
         httpOnly: true,
         secure: process.env.NODE_ENV === "production",
-        sameSite: process.env.NODE_ENV === "production" ? "None" : "Lax",
-        maxAge: 60 * 60 * 1000, // 1 saat
+        sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+        domain: "tercihsepetim.com",
+        maxAge: 1000 * 60 * 60 * 24 * 7,
+        path: "/",
       })
       .status(201)
       .json({
@@ -93,11 +95,12 @@ router.post("/login", async (req, res) => {
     res
       .cookie("token", token, {
         httpOnly: true,
-        secure: false, // 👈 test için false yap
-        sameSite: "Lax", // 👈 test için cross-site olmaması için Lax yap
+        secure: process.env.NODE_ENV === "production",
+        sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+        domain: "tercihsepetim.com",
+        maxAge: 1000 * 60 * 60 * 24 * 7,
         path: "/",
       })
-
       .status(200)
       .json({
         user: { _id: userJson._id, email: userJson.email, role: userJson.role },
@@ -154,7 +157,9 @@ router.post("/logout", (req, res) => {
   res.clearCookie("token", {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
-    sameSite: process.env.NODE_ENV === "production" ? "None" : "Lax",
+    sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+    domain: "tercihsepetim.com",
+    path: "/",
   });
   res.status(200).json({ message: "Çıkış başarılı." });
 });
@@ -235,8 +240,10 @@ router.post("/google", async (req, res, next) => {
       .cookie("token", token, {
         httpOnly: true,
         secure: process.env.NODE_ENV === "production",
-        sameSite: process.env.NODE_ENV === "production" ? "None" : "Lax",
-        maxAge: 60 * 60 * 1000,
+        sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+        domain: "tercihsepetim.com",
+        maxAge: 1000 * 60 * 60 * 24 * 7,
+        path: "/",
       })
       .status(200)
       .json({
