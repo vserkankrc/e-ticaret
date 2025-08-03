@@ -106,3 +106,13 @@
   font-size: 18px;
   margin-top: 1rem;
 }
+
+.payment-type-selection {
+  margin-bottom: 1rem;
+}
+
+.payment-type-selection label {
+  font-size: 1rem;
+  font-weight: 500;
+  cursor: pointer;
+}

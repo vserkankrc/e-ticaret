@@ -16,9 +16,9 @@ import nanoid from "../utils/nanoid.js";
 import logger from "../utils/logs.js";
 import Users from "../models/Users.js";
 import { sendSms } from "../utils/sendSms.js";
+import iyzipay from "../services/iyzico/connection/iyzipay.js";
 
 const router = express.Router();
-
 
 // === Ödeme ve Sipariş Oluşturma ===
 router.post("/checkout", authMiddleware, async (req, res) => {
@@ -114,7 +114,9 @@ router.post("/checkout", authMiddleware, async (req, res) => {
       },
       basketItems: products.map((item) => ({
         id: item.productId || nanoid(),
-        name: `${item.name || "Ürün"}${item.color ? " - " + item.color : ""}${item.size ? " - " + item.size : ""}`,
+        name: `${item.name || "Ürün"}${item.color ? " - " + item.color : ""}${
+          item.size ? " - " + item.size : ""
+        }`,
         category1: item.category || "Genel",
         itemType: "PHYSICAL",
         price: (item.price * item.quantity).toString(),
@@ -255,6 +257,292 @@ router.post("/checkout", authMiddleware, async (req, res) => {
   }
 });
 
+// === 3D Secure Payment ===
+
+router.post("/checkout/3d/initialize", authMiddleware, async (req, res) => {
+  try {
+    const user = req.user;
+    const {
+      products,
+      totalAmount,
+      address,
+      card,
+      saveCard,
+      agreementAccepted,
+    } = req.body;
+
+    const conversationId = nanoid();
+    const basketId = nanoid();
+    const registerCard = saveCard ? "1" : "0";
+
+    // 🧾 3D secure için ödeme datası hazırlanıyor
+    const paymentData = {
+      locale: "tr",
+      conversationId,
+      price: totalAmount.toString(),
+      paidPrice: totalAmount.toString(),
+      currency: "TRY",
+      installment: "1",
+      basketId,
+      paymentChannel: "WEB",
+      paymentGroup: "PRODUCT",
+      callbackUrl: "https://www.tercihsepetim.com/api/checkout/3d/callback", // callback önemli!
+
+      paymentCard: {
+        cardHolderName: card.cardHolderName,
+        cardNumber: card.cardNumber,
+        expireMonth: card.expireMonth,
+        expireYear: card.expireYear,
+        cvc: card.cvc,
+        registerCard,
+      },
+
+      buyer: {
+        id: user._id.toString(),
+        name: user.name,
+        surname: user.surname,
+        gsmNumber: user.phone,
+        email: user.email,
+        identityNumber: user.identityNumber || "11111111111",
+        registrationAddress: address.addressDetail,
+        ip: req.ip || "85.34.78.112",
+        city: address.province,
+        country: address.country || "Türkiye",
+      },
+
+      shippingAddress: {
+        contactName: `${user.name} ${user.surname}`,
+        city: address.province,
+        country: "Türkiye",
+        address: address.addressDetail,
+      },
+
+      billingAddress: {
+        contactName: `${user.name} ${user.surname}`,
+        city: address.province,
+        country: "Türkiye",
+        address: address.addressDetail,
+      },
+
+      basketItems: products.map((item) => ({
+        id: item.productId || nanoid(),
+        name: item.name || "Ürün",
+        category1: item.category || "Genel",
+        itemType: "PHYSICAL",
+        price: (item.price * item.quantity).toString(),
+      })),
+    };
+
+    // 🔐 iyzico 3D başlat
+    iyzipay.threedsInitialize.create(paymentData, async (err, result) => {
+      if (err || result.status !== "success") {
+        return res.status(400).json({
+          message: "3D Secure başlatılamadı",
+          error: err || result.errorMessage,
+        });
+      }
+
+      // 🔁 3DS formunu frontend'e gönder
+      res.status(200).send(result.threeDSHtmlContent);
+    });
+  } catch (error) {
+    console.error("3D başlatma hatası:", error);
+    res.status(500).json({ message: "Sunucu hatası", error: error.message });
+  }
+});
+
+router.post("/checkout/3d/callback", async (req, res) => {
+  const { paymentId, conversationData, conversationId } = req.body;
+
+  const request = {
+    locale: "tr",
+    conversationId,
+    paymentId,
+    conversationData,
+  };
+
+  iyzipay.threedsPayment.create(request, async (err, result) => {
+    if (err || result.status !== "success") {
+      console.error("3D ödeme doğrulama hatası:", err || result);
+      return res.redirect("/payment-failed");
+    }
+
+    try {
+      // Ödeme başarılı, şimdi aynı checkout'taki işlemleri yapacağız.
+
+      // Burada **kullanıcı, ürün, adres, kart, vb bilgileri** önceden saklaman gerekir,
+      // çünkü 3D callback'te sadece paymentId, conversationData, conversationId gelir.
+      // Eğer bu bilgileri callback'te alamıyorsan frontend'den POST ile gönderilmeli veya önceden DB'ye kaydedilmiş olmalı.
+
+      // Örnek olarak: callback isteğinde diğer gerekli veriler gelmeli
+      // (frontend'den göndermediysen, bu kısmı kendi sistemine göre uyarlamalısın)
+      const {
+        userId,
+        products,
+        totalAmount,
+        trackingNumber,
+        address,
+        paymentMethod,
+        agreementAccepted,
+        card,
+        saveCard,
+      } = req.body;
+
+      if (
+        !products ||
+        !Array.isArray(products) ||
+        products.length === 0 ||
+        !address ||
+        !paymentMethod ||
+        agreementAccepted !== true
+      ) {
+        console.error("3D callback - eksik sipariş bilgisi");
+        return res.redirect("/payment-failed");
+      }
+
+      const user = await User.findById(userId);
+      if (!user) {
+        console.error("3D callback - kullanıcı bulunamadı");
+        return res.redirect("/payment-failed");
+      }
+
+      const registerCard = saveCard ? "1" : "0";
+      const basketId = nanoid();
+
+      // Kart bilgileri
+      let paymentCard = {};
+      if (card?.savedCardId) {
+        const savedCard = await SavedCard.findById(card.savedCardId);
+        if (!savedCard) {
+          console.error("3D callback - kayıtlı kart bulunamadı");
+          return res.redirect("/payment-failed");
+        }
+        paymentCard = {
+          cardUserKey: savedCard.cardUserKey,
+          cardToken: savedCard.cardToken,
+        };
+      } else {
+        paymentCard = {
+          cardHolderName: card.cardHolderName,
+          cardNumber: card.cardNumber,
+          expireMonth: card.expireMonth,
+          expireYear: card.expireYear,
+          cvc: card.cvc,
+          registerCard,
+        };
+      }
+
+      // Burada createPayment fonksiyonun varsa onu çağırabilirsin, ya da
+      // 3D sonrası zaten ödeme tamamlandığı için aşağıdaki result'ı kullanacağız.
+
+      if (
+        saveCard &&
+        !card.savedCardId &&
+        result.cardToken &&
+        result.cardUserKey
+      ) {
+        await SavedCard.create({
+          userId: user._id,
+          cardToken: result.cardToken,
+          cardUserKey: result.cardUserKey,
+          cardHolderName: card.cardHolderName,
+          cardType: result.cardType || "Unknown",
+          last4Digits: card.cardNumber.slice(-4),
+          expireMonth: card.expireMonth,
+          expireYear: card.expireYear,
+        });
+      }
+
+      // Stok güncelle
+      for (const item of products) {
+        await Products.findByIdAndUpdate(item.productId, {
+          $inc: { quantity: -item.quantity },
+        });
+      }
+
+      const paymentTransactionId =
+        result.itemTransactions && result.itemTransactions.length > 0
+          ? result.itemTransactions[0].paymentTransactionId
+          : "";
+
+      // Sipariş kaydet
+      const savedOrder = await new Order({
+        userId: user._id,
+        products: products.map((item, i) => ({
+          productId: item.productId,
+          quantity: item.quantity,
+          price: item.price,
+          image: item.image || "",
+          color: item.color || null,
+          size: item.size || null,
+          paymentTransactionId:
+            result.itemTransactions?.[i]?.paymentTransactionId || "",
+        })),
+        paymentTransactionId,
+        totalAmount,
+        trackingNumber: trackingNumber || nanoid(),
+        address: {
+          district: address.district,
+          province: address.province,
+          postalCode: address.postalCode,
+          addressDetail: address.addressDetail,
+          country: address.country || "Türkiye",
+        },
+        paymentMethod,
+        agreementAccepted,
+        paymentStatus: "completed",
+        paymentId: result.paymentId || "",
+      }).save();
+
+      // Ödeme başarılı log kaydı
+      await new PaymentSuccess({
+        status: "success",
+        conversationId,
+        paymentId: result.paymentId || `PMT-${Date.now()}`,
+        price: totalAmount,
+        paidPrice: totalAmount,
+        currency: "TRY",
+        cartId: basketId,
+        userId: user._id,
+        itemTransactions: (result.itemTransactions || []).map((tx, i) => ({
+          uid: `itm-${i}-${Date.now()}`,
+          itemId: tx.itemId || products[i]?.productId,
+          price: tx.price,
+          paidPrice: tx.paidPrice,
+          paymentTransactionId: tx.paymentTransactionId,
+        })),
+        log: {
+          message: "3D ödeme başarılı.",
+          userEmail: user.email,
+          iyzicoRawResponse: result,
+        },
+      }).save();
+
+      // Mail gönder
+      await sendPaymentSuccessEmail({
+        userName: user.name,
+        userEmail: user.email,
+        items: products.map((p) => ({
+          title: p.name,
+          quantity: p.quantity,
+        })),
+        totalPrice: totalAmount,
+        currency: "TL",
+      });
+
+      // SMS gönder
+      await sendSms({
+        to: process.env.ADMIN_PHONE_NUMBER,
+        message: `📦 Yeni sipariş alındı!\n👤 Müşteri: ${user.name}\n💰 Tutar: ₺${totalAmount}\n🛒 Ürün adedi: ${products.length}`,
+      });
+
+      return res.redirect("/payment-success");
+    } catch (error) {
+      console.error("3D callback işlem hatası:", error);
+      return res.redirect("/payment-failed");
+    }
+  });
+});
 
 // Kayıtlı Kartları getirme
 router.get("/cards", authMiddleware, async (req, res) => {
@@ -369,9 +657,6 @@ router.get("/", authMiddleware, adminMiddleware, async (req, res) => {
     const limit = 5; // Sayfa başına 5 sipariş
     const skip = (page - 1) * limit;
 
-
-
-    
     // Toplam kayıt sayısı (sayfa sayısını hesaplamak için)
 
     const totalOrders = await Order.countDocuments();
@@ -416,13 +701,6 @@ router.put("/:id/status", authMiddleware, adminMiddleware, async (req, res) => {
     res.status(500).json({ message: "Sunucu hatası" });
   }
 });
-
-
-
-
-
-
-
 
 /* Sipariş İptal işlemleri */
 
@@ -480,12 +758,10 @@ router.post(
       order.status = "cancelled";
       await order.save();
 
-      return res
-        .status(200)
-        .json({
-          success: true,
-          message: "Sipariş iptal edildi ve iade işlemi başlatıldı.",
-        });
+      return res.status(200).json({
+        success: true,
+        message: "Sipariş iptal edildi ve iade işlemi başlatıldı.",
+      });
     } catch (error) {
       console.error("İptal ve iade hatası:", error);
 
@@ -498,13 +774,11 @@ router.post(
         }
       );
 
-      return res
-        .status(500)
-        .json({
-          success: false,
-          message: "İade işlemi sırasında hata oluştu.",
-          error: error.message,
-        });
+      return res.status(500).json({
+        success: false,
+        message: "İade işlemi sırasında hata oluştu.",
+        error: error.message,
+      });
     }
   }
 );
@@ -544,11 +818,9 @@ router.post("/cancel-request/:orderId", authMiddleware, async (req, res) => {
       logger.warn(
         `[${new Date().toISOString()}] ❌ Kullanıcı ${userId} için sipariş bulunamadı: ${orderId}`
       );
-      return res
-        .status(404)
-        .json({
-          message: "Sipariş bulunamadı veya bu sipariş size ait değil.",
-        });
+      return res.status(404).json({
+        message: "Sipariş bulunamadı veya bu sipariş size ait değil.",
+      });
     }
 
     if (order.cancelRequest === true) {

@@ -4,6 +4,7 @@ import bcrypt from "bcryptjs";
 import ApiError from "../error/ApiError.js";
 import jwt from "jsonwebtoken";
 
+
 const router = express.Router();
 
 // Kullanıcı Oluşturma (Register)
@@ -64,6 +65,7 @@ router.post("/register", async (req, res, next) => {
   }
 });
 
+
 // Kullanıcı Girişi (Login)
 router.post("/login", async (req, res) => {
   try {
@@ -96,18 +98,15 @@ router.post("/login", async (req, res) => {
       .cookie("token", token, {
         httpOnly: true,
         secure: process.env.NODE_ENV === "production",
-        sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
-        domain: "tercihsepetim.com",
-        maxAge: 1000 * 60 * 60 * 24 * 7,
+        sameSite: process.env.NODE_ENV === "production" ? "strict" : "lax",
+
         path: "/",
+        maxAge: 60 * 60 * 1000, // 1 saat
       })
       .status(200)
       .json({
         user: { _id: userJson._id, email: userJson.email, role: userJson.role },
       });
-    console.log(user);
-
-    console.log(token);
   } catch (error) {
     console.log(error);
     if (error instanceof ApiError) {

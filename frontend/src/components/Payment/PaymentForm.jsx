@@ -1,6 +1,6 @@
+/* eslint-disable no-unused-vars */
 import { useState, useEffect, useContext } from "react";
 import { useNavigate } from "react-router-dom";
-// eslint-disable-next-line no-unused-vars
 import { message, Spin } from "antd";
 import axios from "@/utils/axios";
 import { CartContext } from "@/context/CartProvider";
@@ -10,6 +10,7 @@ import SavedCards from "./SavedCards";
 import NewCardForm from "./NewCardForm";
 import CartSummary from "./CartSummary";
 import AgreementSection from "./AgreementSection";
+import ThreeDSecurity from "./ThreeDSecurity";
 
 const PaymentForm = () => {
   const { cartItems, clearCart } = useContext(CartContext);
@@ -17,7 +18,6 @@ const PaymentForm = () => {
 
   const [addresses, setAddresses] = useState([]);
   const [selectedAddressId, setSelectedAddressId] = useState("");
-  // eslint-disable-next-line no-unused-vars
   const [userDetails, setUserDetails] = useState(null);
 
   const [paymentMethod] = useState("iyzico");
@@ -29,10 +29,11 @@ const PaymentForm = () => {
   const [cardNumber, setCardNumber] = useState("");
   const [expiryDate, setExpiryDate] = useState("");
   const [cvc, setCvc] = useState("");
-  // eslint-disable-next-line no-unused-vars
   const [isFlipped, setIsFlipped] = useState(false);
 
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
+
+  const [use3DSecure, setUse3DSecure] = useState(true); // 3D varsayılan açık
 
   useEffect(() => {
     const cartItemsLocal = JSON.parse(localStorage.getItem("cartItems")) || [];
@@ -92,7 +93,7 @@ const PaymentForm = () => {
         productId: item.productId || item._id,
         quantity: item.quantity,
         price: item.price,
-        image: item.image || (item.images?.[0] || ""),
+        image: item.image || item.images?.[0] || "",
         color: item.selectedColor || null,
         size: item.selectedSize || null,
       })),
@@ -108,6 +109,7 @@ const PaymentForm = () => {
       },
       paymentMethod,
       agreementAccepted: acceptedContract,
+      use3DSecure,
       card: selectedCardId
         ? { savedCardId: selectedCardId }
         : {
@@ -123,15 +125,35 @@ const PaymentForm = () => {
     try {
       setIsProcessingPayment(true);
 
-      await axios.post("/api/orders/checkout", orderPayload, {
-        withCredentials: true,
-        headers: { "Content-Type": "application/json" },
-      });
+      if (use3DSecure) {
+        const response = await axios.post(
+          "/api/orders/checkout/3d/initialize",
+          orderPayload,
+          {
+            withCredentials: true,
+            headers: { "Content-Type": "application/json" },
+          }
+        );
 
-      message.success("Ödeme başarılı! Siparişiniz oluşturuldu");
-      localStorage.removeItem("paymentInfo");
-      clearCart();
-      navigate("/profile", { state: { activeTab: "orders" } });
+        const newWindow = window.open("", "_blank");
+        if (newWindow) {
+          newWindow.document.open();
+          newWindow.document.write(response.data);
+          newWindow.document.close();
+        } else {
+          message.error("3D Secure sayfası açılamadı. Lütfen tarayıcı izinlerini kontrol edin.");
+        }
+      } else {
+        await axios.post("/api/orders/checkout", orderPayload, {
+          withCredentials: true,
+          headers: { "Content-Type": "application/json" },
+        });
+
+        message.success("Ödeme başarılı! Siparişiniz oluşturuldu");
+        localStorage.removeItem("paymentInfo");
+        clearCart();
+        navigate("/profile", { state: { activeTab: "orders" } });
+      }
     } catch (error) {
       console.error("Sipariş oluşturulurken hata:", error);
       message.error(error.response?.data?.message || "Ödeme işlemi başarısız");
@@ -152,8 +174,6 @@ const PaymentForm = () => {
             setUserDetails={setUserDetails}
           />
 
-          <SavedCards onCardSelect={setSelectedCardId} />
-
           {!selectedCardId && (
             <NewCardForm
               cardName={cardName}
@@ -170,11 +190,16 @@ const PaymentForm = () => {
             />
           )}
 
+          <ThreeDSecurity
+            use3DSecure={use3DSecure}
+            setUse3DSecure={setUse3DSecure}
+          />
+
           <AgreementSection
             accepted={acceptedContract}
             setAccepted={setAcceptedContract}
           />
-
+          <SavedCards onCardSelect={setSelectedCardId} />
           <button
             type="submit"
             className="payment-submit-btn"
