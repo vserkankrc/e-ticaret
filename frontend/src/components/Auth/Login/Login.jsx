@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { EyeOutlined, EyeInvisibleOutlined } from "@ant-design/icons";
 import { message } from "antd";
 import { AuthContext } from "../../../context/AuthContext.jsx";
-import api from "../../../utils/axios.js"; // ⬅️ Buraya dikkat
+import api from "@/utils/axios.js"; // ⬅️ Buraya dikkat
 
 import "./Login.css";
 
