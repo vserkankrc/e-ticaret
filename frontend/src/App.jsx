@@ -26,6 +26,7 @@ import CanceledOrders from "./pages/Admin/Orders/CanceledOrders.jsx";
 import PageList from "./pages/Admin/Pages/PagesList.jsx";
 import CreatePage from "./pages/Admin/Pages/CreatePage";
 import UpdatePage from "./pages/Admin/Pages/UpdatePage";
+import AdminLayout from "./layouts/AdminLayout"; // 🆕
 import "./App.css";
 
 function App() {
@@ -41,36 +42,39 @@ function App() {
         <Route path="/ProductDetailsPage/:id" element={<ProductDetailsPage />} />
         <Route path="/auth" element={<AuthPage />} />
         <Route path="/404" element={<NotFoundPage />} />
-        <Route path="/*" element={<NotFoundPage />} />
         <Route path="/payment" element={<PaymentPage />} />
-
-        {/* Sayfaları görüntüleme */}
+        <Route path="/reset-password/:token" element={<ResetPassword />} />
+        <Route path="/profile/*" element={<ProfilePages />} />
+        <Route path="/categori/:categoryId" element={<CategoryProductsPage />} />
         <Route path="/:slug" element={<StaticPage />} />
 
-        {/* Kategoriye göre ürün */}
-        <Route path="/categori/:categoryId" element={<CategoryProductsPage />} />
+        {/* Admin Layout ile sarmalanmış rotalar */}
+        <Route
+          path="/admin/*"
+          element={
+            <AdminLayout>
+              <Routes>
+                <Route index element={<Navigate to="users" />} />
+                <Route path="users" element={<UserPage />} />
+                <Route path="categories" element={<CategoryPage />} />
+                <Route path="categories/update/:id" element={<UpdateCategoryPage />} />
+                <Route path="categories/create" element={<CreateCategoryPage />} />
+                <Route path="products" element={<ProductPage />} />
+                <Route path="products/create" element={<CreateProductPage />} />
+                <Route path="products/update/:id" element={<UpdateProductPage />} />
+                <Route path="orders" element={<OrdersPage />} />
+                <Route path="orders/canceled" element={<CanceledOrders />} />
+                <Route path="reviews" element={<Reviews />} />
+                <Route path="pages" element={<PageList />} />
+                <Route path="pages/create" element={<CreatePage />} />
+                <Route path="pages/update/:id" element={<UpdatePage />} />
+              </Routes>
+            </AdminLayout>
+          }
+        />
 
-        {/* Parola Sıfırlama */}
-        <Route path="/reset-password/:token" element={<ResetPassword />} />
-
-        {/* Kullanıcı Profili */}
-        <Route path="/profile/*" element={<ProfilePages />} />
-
-        {/* Admin Paneli */}
-        <Route path="/admin" element={<Navigate to="/admin/users" />} />
-        <Route path="/admin/users" element={<UserPage />} />
-        <Route path="/admin/categories" element={<CategoryPage />} />
-        <Route path="/admin/categories/update/:id" element={<UpdateCategoryPage />} />
-        <Route path="/admin/categories/create" element={<CreateCategoryPage />} />
-        <Route path="/admin/products" element={<ProductPage />} />
-        <Route path="/admin/products/create" element={<CreateProductPage />} />
-        <Route path="/admin/products/update/:id" element={<UpdateProductPage />} />
-        <Route path="/admin/orders" element={<OrdersPage />} />
-        <Route path="/admin/orders/canceled" element={<CanceledOrders />} />
-        <Route path="/admin/reviews" element={<Reviews />} />
-        <Route path="/admin/pages" element={<PageList />} />
-        <Route path="/admin/pages/create" element={<CreatePage />} />
-        <Route path="/admin/pages/update/:id" element={<UpdatePage />} />
+        {/* Hatalı route'lar */}
+        <Route path="*" element={<NotFoundPage />} />
       </Routes>
 
       <CookieConsent />
