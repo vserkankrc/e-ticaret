@@ -1,4 +1,4 @@
-import { Routes, Route } from "react-router-dom";
+import { Routes, Route, Navigate } from "react-router-dom";
 import HomePage from "./pages/HomePage";
 import AboutUsPage from "./pages/AboutUsPage";
 import QuestionsPage from "./pages/QuestionsPage";
@@ -21,18 +21,18 @@ import UpdateProductPage from "./pages/Admin/Products/UpdateProductPage";
 import OrdersPage from "./pages/OrdersPage";
 import Reviews from "./pages/Admin/Reviews/Reviews";
 import CookieConsent from "./components/Modals/CookieConsent/CookieConsent.jsx";
-import StaticPage from "./pages/Admin/Pages/StaticPage/StaticPage.jsx"
+import StaticPage from "./pages/Admin/Pages/StaticPage/StaticPage.jsx";
 import CanceledOrders from "./pages/Admin/Orders/CanceledOrders.jsx";
-import "./App.css";
-
-// ✅ Yeni eklenen admin sayfaları
 import PageList from "./pages/Admin/Pages/PagesList.jsx";
 import CreatePage from "./pages/Admin/Pages/CreatePage";
 import UpdatePage from "./pages/Admin/Pages/UpdatePage";
+import "./App.css";
+
 function App() {
   return (
     <>
       <Routes>
+        {/* Genel Sayfalar */}
         <Route path="/" element={<HomePage />} />
         <Route path="/aboutus" element={<AboutUsPage />} />
         <Route path="/questions" element={<QuestionsPage />} />
@@ -40,13 +40,12 @@ function App() {
         <Route path="/cart" element={<CartPage />} />
         <Route path="/ProductDetailsPage/:id" element={<ProductDetailsPage />} />
         <Route path="/auth" element={<AuthPage />} />
-        <Route path="/*" element={<NotFoundPage />} />
         <Route path="/404" element={<NotFoundPage />} />
+        <Route path="/*" element={<NotFoundPage />} />
         <Route path="/payment" element={<PaymentPage />} />
 
         {/* Sayfaları görüntüleme */}
         <Route path="/:slug" element={<StaticPage />} />
-
 
         {/* Kategoriye göre ürün */}
         <Route path="/categori/:categoryId" element={<CategoryProductsPage />} />
@@ -58,6 +57,7 @@ function App() {
         <Route path="/profile/*" element={<ProfilePages />} />
 
         {/* Admin Paneli */}
+        <Route path="/admin" element={<Navigate to="/admin/users" />} />
         <Route path="/admin/users" element={<UserPage />} />
         <Route path="/admin/categories" element={<CategoryPage />} />
         <Route path="/admin/categories/update/:id" element={<UpdateCategoryPage />} />
@@ -67,17 +67,12 @@ function App() {
         <Route path="/admin/products/update/:id" element={<UpdateProductPage />} />
         <Route path="/admin/orders" element={<OrdersPage />} />
         <Route path="/admin/orders/canceled" element={<CanceledOrders />} />
-
         <Route path="/admin/reviews" element={<Reviews />} />
-
-        {/* ✅ Yeni Admin Sayfa Yönetimi */}
         <Route path="/admin/pages" element={<PageList />} />
         <Route path="/admin/pages/create" element={<CreatePage />} />
         <Route path="/admin/pages/update/:id" element={<UpdatePage />} />
-
       </Routes>
 
-      {/* Çerez bildirimi */}
       <CookieConsent />
     </>
   );
