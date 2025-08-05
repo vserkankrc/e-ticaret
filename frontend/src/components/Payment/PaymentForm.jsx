@@ -1,7 +1,7 @@
 /* eslint-disable no-unused-vars */
 import { useState, useEffect, useContext } from "react";
 import { useNavigate } from "react-router-dom";
-import { message, Spin } from "antd";
+import { message } from "antd";
 import axios from "@/utils/axios";
 import { CartContext } from "@/context/CartProvider";
 
@@ -32,8 +32,7 @@ const PaymentForm = () => {
   const [isFlipped, setIsFlipped] = useState(false);
 
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
-
-  const [use3DSecure, setUse3DSecure] = useState(true); // 3D varsayılan açık
+  const [use3DSecure, setUse3DSecure] = useState(true);
 
   useEffect(() => {
     const cartItemsLocal = JSON.parse(localStorage.getItem("cartItems")) || [];
@@ -63,14 +62,15 @@ const PaymentForm = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-
     if (isProcessingPayment) return;
 
-    if (!acceptedContract)
+    if (!acceptedContract) {
       return message.warning("Lütfen satış sözleşmesini onaylayın");
+    }
 
-    if (!selectedAddressId)
+    if (!selectedAddressId) {
       return message.warning("Teslimat adresi seçmelisiniz");
+    }
 
     if (!selectedCardId) {
       if (cardNumber.replace(/\s/g, "").length !== 16)
@@ -135,13 +135,17 @@ const PaymentForm = () => {
           }
         );
 
-        const newWindow = window.open("", "_blank");
+        const newWindow = window.open(
+          "",
+          "_blank",
+          "noopener,noreferrer,width=600,height=600"
+        );
+
         if (newWindow) {
-          newWindow.document.open();
           newWindow.document.write(response.data);
           newWindow.document.close();
         } else {
-          message.error("3D Secure sayfası açılamadı. Lütfen tarayıcı izinlerini kontrol edin.");
+          message.error("3D Secure sayfası açılamadı. Tarayıcı izinlerini kontrol edin.");
         }
       } else {
         await axios.post("/api/orders/checkout", orderPayload, {
@@ -199,7 +203,9 @@ const PaymentForm = () => {
             accepted={acceptedContract}
             setAccepted={setAcceptedContract}
           />
+
           <SavedCards onCardSelect={setSelectedCardId} />
+
           <button
             type="submit"
             className="payment-submit-btn"

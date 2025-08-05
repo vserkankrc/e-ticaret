@@ -2,18 +2,20 @@ import "./Header.css";
 import PropTypes from "prop-types";
 import { message } from "antd";
 import { Link, useNavigate } from "react-router-dom";
-import { useContext, useState } from "react"; // useState eklendi
+import { useContext, useState } from "react";
 import { AuthContext } from "../../../context/AuthContext.jsx";
 import { CartContext } from "../../../context/CartProvider.jsx";
-import api from "../../../utils/axios"; // <--- GÜNCELLENDİ
+import api from "../../../utils/axios";
 
 const Header = ({ setIsSearchShow }) => {
+  // eslint-disable-next-line no-unused-vars
   const { isAuthenticated, logout, checkAuth } = useContext(AuthContext);
   const { cartItems, clearCart } = useContext(CartContext);
+  // eslint-disable-next-line no-unused-vars
   const navigate = useNavigate();
 
-  const [menuActive, setMenuActive] = useState(false); // Menü durumu
-  const toggleMenu = () => setMenuActive((prev) => !prev); // Aç/kapat
+  const [menuActive, setMenuActive] = useState(false);
+  const toggleMenu = () => setMenuActive((prev) => !prev);
 
   const handleLogout = async () => {
     try {
@@ -21,9 +23,8 @@ const Header = ({ setIsSearchShow }) => {
       clearCart();
       localStorage.removeItem("user");
       logout();
-      checkAuth();
       message.success("Çıkış başarılı.");
-      navigate("/");
+      window.location.href = "/"; // Sayfayı tam yenile
     } catch (error) {
       console.error("Çıkış hatası:", error);
       message.error("Çıkış işlemi başarısız.");
@@ -58,20 +59,12 @@ const Header = ({ setIsSearchShow }) => {
               <nav className="navigation">
                 <ul className="menu-list">
                   <li className="menu-list-item">
-                    <Link
-                      to="/"
-                      className="menu-link active"
-                      onClick={toggleMenu}
-                    >
+                    <Link to="/" className="menu-link active" onClick={toggleMenu}>
                       Anasayfa <i className="bi bi-chevron-down"></i>
                     </Link>
                   </li>
                   <li className="menu-list-item">
-                    <Link
-                      to="/communication"
-                      className="menu-link"
-                      onClick={toggleMenu}
-                    >
+                    <Link to="/communication" className="menu-link" onClick={toggleMenu}>
                       İletişim
                     </Link>
                   </li>
@@ -99,19 +92,14 @@ const Header = ({ setIsSearchShow }) => {
                   </>
                 )}
 
-                <button
-                  className="search-button"
-                  onClick={() => setIsSearchShow(true)}
-                >
+                <button className="search-button" onClick={() => setIsSearchShow(true)}>
                   <i className="bi bi-search"></i>
                 </button>
 
                 <div className="header-cart">
                   <Link to="/cart" className="header-cart-link">
                     <i className="bi bi-cart3"></i>
-                    <span className="header-cart-count">
-                      {cartItems?.length || 0}
-                    </span>
+                    <span className="header-cart-count">{cartItems?.length || 0}</span>
                   </Link>
                 </div>
               </div>

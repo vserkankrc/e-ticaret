@@ -157,7 +157,7 @@ router.post("/logout", (req, res) => {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
     sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
-    domain: process.env.NODE_ENV === "production" ? ".tercihsepetim.com" : "localhost",
+    domain: "tercihsepetim.com",
     path: "/",
   });
   res.status(200).json({ message: "Çıkış başarılı." });
