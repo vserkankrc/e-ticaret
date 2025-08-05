@@ -135,18 +135,28 @@ const PaymentForm = () => {
           }
         );
 
-        const newWindow = window.open(
-          "",
-          "_blank",
-          "noopener,noreferrer,width=600,height=600"
-        );
+        // Düzgün gelen HTML form varsa aç
+        if (response.data && typeof response.data === "string" && response.data.includes("<form")) {
+          const newWindow = window.open(
+            "",
+            "_blank",
+            "noopener,noreferrer,width=600,height=600"
+          );
 
-        if (newWindow) {
-          newWindow.document.write(response.data);
-          newWindow.document.close();
+          if (newWindow) {
+            newWindow.document.open();
+            newWindow.document.write(response.data);
+            newWindow.document.close();
+          } else {
+            message.error("3D Secure sayfası açılamadı. Tarayıcı izinlerini kontrol edin.");
+          }
+        } else if (response.data?.redirectUrl) {
+          // Eğer backend redirectUrl döndürüyorsa onu kullan
+          window.location.href = response.data.redirectUrl;
         } else {
-          message.error("3D Secure sayfası açılamadı. Tarayıcı izinlerini kontrol edin.");
+          message.error("3D Secure başlatılamadı.");
         }
+
       } else {
         await axios.post("/api/orders/checkout", orderPayload, {
           withCredentials: true,

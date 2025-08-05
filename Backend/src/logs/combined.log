@@ -79,3 +79,5 @@
 {"level":"info","message":"Ödeme başarıyla gerçekleşti","paymentId":"24950183","price":"1300","type":"payment-success","userEmail":"serkan_krc@outlook.com"}
 {"level":"info","message":"[2025-07-25T12:49:31.102Z] ✅ serkan_krc@outlook.com (683b3e27d919ba49c1efae29) için iptal maili başarıyla gönderildi. Sipariş: 688358707a59952c728079b4"}
 {"level":"info","message":"Ödeme başarıyla gerçekleşti","paymentId":"25088532","price":"1300","type":"payment-success","userEmail":"serkan_krc@outlook.com"}
+{"level":"info","message":"[2025-08-05T07:43:46.750Z] ✅ serkan_krc@outlook.com (683b3e27d919ba49c1efae29) için iptal maili başarıyla gönderildi. Sipariş: 688fcbe9c8e36b521e9e6093"}
+{"level":"info","message":"[2025-08-05T07:43:48.840Z] ✅ serkan_krc@outlook.com (683b3e27d919ba49c1efae29) için iptal maili başarıyla gönderildi. Sipariş: 688fa5d36912c9a36eb51955"}
