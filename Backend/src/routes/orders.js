@@ -257,6 +257,9 @@ router.post("/checkout", authMiddleware, async (req, res) => {
   }
 });
 
+
+
+
 // === 3D Secure Payment Initialization ===
 router.post("/checkout/3d/initialize", authMiddleware, async (req, res) => {
   try {
@@ -272,6 +275,18 @@ router.post("/checkout/3d/initialize", authMiddleware, async (req, res) => {
 
     if (!agreementAccepted) {
       return res.status(400).json({ message: "Sözleşme kabul edilmedi." });
+    }
+
+    if (!products || !Array.isArray(products) || products.length === 0) {
+      return res.status(400).json({ message: "Ürün bilgileri eksik." });
+    }
+
+    if (!address) {
+      return res.status(400).json({ message: "Adres bilgisi eksik." });
+    }
+
+    if (!card || (!card.savedCardId && (!card.cardHolderName || !card.cardNumber || !card.expireMonth || !card.expireYear || !card.cvc))) {
+      return res.status(400).json({ message: "Kart bilgileri eksik." });
     }
 
     const conversationId = nanoid();
@@ -290,7 +305,6 @@ router.post("/checkout/3d/initialize", authMiddleware, async (req, res) => {
       paymentGroup: "PRODUCT",
       callbackUrl: "https://api.tercihsepetim.com/api/orders/checkout/3d/callback",
 
-
       paymentCard: {
         cardHolderName: card.cardHolderName,
         cardNumber: card.cardNumber,
@@ -308,7 +322,7 @@ router.post("/checkout/3d/initialize", authMiddleware, async (req, res) => {
         email: user.email,
         identityNumber: user.identityNumber || "11111111111",
         registrationAddress: address.addressDetail,
-        ip: req.ip || "85.34.78.112",
+        ip: req.ip || req.headers["x-forwarded-for"] || "85.34.78.112",
         city: address.province,
         country: address.country || "Türkiye",
       },
@@ -345,8 +359,8 @@ router.post("/checkout/3d/initialize", authMiddleware, async (req, res) => {
         });
       }
 
-      // 3D ödeme için redirect URL'yi frontend'e gönderiyoruz
-      res.status(200).json({
+      // 3D ödeme için frontend'e gönderilen içerik veya redirectUrl
+      return res.status(200).json({
         status: "success",
         redirectUrl: result.redirectUrl || null,
         threeDSHtmlContent: result.threeDSHtmlContent || null,
@@ -376,8 +390,7 @@ router.post("/checkout/3d/callback", async (req, res) => {
     }
 
     try {
-      // Ödeme başarılı, aşağıdaki bilgileri önceden saklaman gerekir
-      // Burada örnek olarak frontend’den callback isteği ile veriler gelmeli
+      // Ödeme başarılı, burada sipariş detayları frontend'den gelmeli (örn. post body)
       const {
         userId,
         products,
@@ -390,6 +403,7 @@ router.post("/checkout/3d/callback", async (req, res) => {
         saveCard,
       } = req.body;
 
+      // Temel validasyonlar
       if (
         !products ||
         !Array.isArray(products) ||
@@ -409,8 +423,8 @@ router.post("/checkout/3d/callback", async (req, res) => {
       }
 
       const registerCard = saveCard ? "1" : "0";
-      const basketId = nanoid();
 
+      // Kart bilgisi
       let paymentCard = {};
       if (card?.savedCardId) {
         const savedCard = await SavedCard.findById(card.savedCardId);
@@ -433,7 +447,7 @@ router.post("/checkout/3d/callback", async (req, res) => {
         };
       }
 
-      // Kayıtlı kart oluşturma
+      // Kayıtlı kart oluşturma işlemi (iyzico'dan dönen tokenlar varsa)
       if (
         saveCard &&
         !card.savedCardId &&
@@ -501,7 +515,7 @@ router.post("/checkout/3d/callback", async (req, res) => {
         price: totalAmount,
         paidPrice: totalAmount,
         currency: "TRY",
-        cartId: basketId,
+        cartId: nanoid(),
         userId: user._id,
         itemTransactions: (result.itemTransactions || []).map((tx, i) => ({
           uid: `itm-${i}-${Date.now()}`,
@@ -517,7 +531,7 @@ router.post("/checkout/3d/callback", async (req, res) => {
         },
       }).save();
 
-      // Mail gönder
+      // Mail gönderimi
       await sendPaymentSuccessEmail({
         userName: user.name,
         userEmail: user.email,
@@ -529,13 +543,13 @@ router.post("/checkout/3d/callback", async (req, res) => {
         currency: "TL",
       });
 
-      // SMS gönder
+      // SMS gönderimi
       await sendSms({
         to: process.env.ADMIN_PHONE_NUMBER,
         message: `📦 Yeni sipariş alındı!\n👤 Müşteri: ${user.name}\n💰 Tutar: ₺${totalAmount}\n🛒 Ürün adedi: ${products.length}`,
       });
 
-      // Başarılı ödeme sonrası kullanıcı frontend sayfasına yönlendiriliyor
+      // Başarılı ödeme sonrası frontend sayfasına yönlendir
       return res.redirect("https://www.tercihsepetim.com/payment-success");
     } catch (error) {
       console.error("3D callback işlem hatası:", error);
@@ -543,6 +557,11 @@ router.post("/checkout/3d/callback", async (req, res) => {
     }
   });
 });
+
+
+
+
+
 // Kayıtlı Kartları getirme
 router.get("/cards", authMiddleware, async (req, res) => {
   try {
@@ -878,12 +897,13 @@ router.post("/cancel-request/:orderId", authMiddleware, async (req, res) => {
   }
 });
 
-//Admin tarafından sipariş iptali
+
+// Admin tarafından sipariş iptali
 router.post("/cancel-approve/:orderId", adminMiddleware, async (req, res) => {
   let order = null;
   try {
     const { orderId } = req.params;
-    order = await Order.findById(orderId).populate("userId"); // user bilgisini alalım
+    order = await Order.findById(orderId).populate("userId");
 
     logger.info(`[cancel-approve] Sipariş verisi getirildi: ${orderId}`);
 
@@ -891,28 +911,21 @@ router.post("/cancel-approve/:orderId", adminMiddleware, async (req, res) => {
       logger.warn(`[cancel-approve] Sipariş bulunamadı: ${orderId}`);
       return res.status(404).json({ message: "Sipariş bulunamadı" });
     }
+
     if (!order.cancelRequest) {
       logger.warn(`[cancel-approve] İptal talebi yok: ${orderId}`);
       return res.status(400).json({ message: "İptal talebi yok." });
     }
 
     const transactionId = order.paymentTransactionId || order.paymentId || null;
-    logger.info(
-      `[cancel-approve] Kullanılacak transactionId: ${transactionId}`
-    );
+    logger.info(`[cancel-approve] Kullanılacak transactionId: ${transactionId}`);
 
     if (!transactionId) {
-      logger.error(
-        `[cancel-approve] Eksik transactionId, iade yapılamaz: ${orderId}`
-      );
-      return res
-        .status(400)
-        .json({ message: "Ödeme transaction ID bilgisi eksik." });
+      logger.error(`[cancel-approve] Eksik transactionId, iade yapılamaz: ${orderId}`);
+      return res.status(400).json({ message: "Ödeme transaction ID bilgisi eksik." });
     }
 
-    logger.info(
-      `[cancel-approve] İade edilecek tutar: ${order.totalAmount} - Sipariş: ${orderId}`
-    );
+    logger.info(`[cancel-approve] İade edilecek tutar: ${order.totalAmount} - Sipariş: ${orderId}`);
 
     const refundResult = await refundPayment({
       paymentTransactionId: transactionId,
@@ -920,14 +933,32 @@ router.post("/cancel-approve/:orderId", adminMiddleware, async (req, res) => {
       ip: req.ip || "85.34.78.112",
     });
 
-    logger.info(
-      `[cancel-approve] İyzico iade cevabı: ${JSON.stringify(refundResult)}`
-    );
+    logger.info(`[cancel-approve] İyzico iade cevabı: ${JSON.stringify(refundResult)}`);
+
+    // 🔴 Yetersiz bakiye durumu özel olarak ele alınıyor
+    if (
+      refundResult.status === "failure" &&
+      refundResult.errorCode === "5117"
+    ) {
+      logger.error(`[cancel-approve] İyzico bakiyesi yetersiz - Sipariş: ${orderId}`);
+
+      await PaymentSuccess.findOneAndUpdate(
+        { paymentId: transactionId },
+        {
+          refundStatus: "failed",
+          refundResponseLog: refundResult,
+        }
+      );
+
+      return res.status(400).json({
+        message: "İade işlemi başarısız. İyzico cüzdan bakiyesi yetersiz.",
+        iyzicoMessage: refundResult.errorMessage,
+        retryable: refundResult.retryable || false,
+      });
+    }
 
     if (refundResult.status === "success") {
-      logger.info(
-        `[cancel-approve] İade başarılı, veritabanı güncelleniyor: ${orderId}`
-      );
+      logger.info(`[cancel-approve] İade başarılı, veritabanı güncelleniyor: ${orderId}`);
 
       await PaymentSuccess.findOneAndUpdate(
         { paymentId: transactionId },
@@ -951,22 +982,14 @@ router.post("/cancel-approve/:orderId", adminMiddleware, async (req, res) => {
           orderId: order._id,
           totalAmount: order.totalAmount,
         });
-        logger.info(
-          `[cancel-approve] İptal ve iade maili gönderildi: ${order.userId.email}`
-        );
+        logger.info(`[cancel-approve] İptal ve iade maili gönderildi: ${order.userId.email}`);
       } catch (mailErr) {
         logger.error(`[cancel-approve] Mail gönderilemedi: ${mailErr.message}`);
       }
 
-      return res
-        .status(200)
-        .json({ message: "Sipariş iptal edildi ve iade yapıldı." });
+      return res.status(200).json({ message: "Sipariş iptal edildi ve iade yapıldı." });
     } else {
-      logger.error(
-        `[cancel-approve] İade başarısız: ${JSON.stringify(
-          refundResult
-        )} - Sipariş: ${orderId}`
-      );
+      logger.error(`[cancel-approve] İade başarısız: ${JSON.stringify(refundResult)} - Sipariş: ${orderId}`);
 
       await PaymentSuccess.findOneAndUpdate(
         { paymentId: transactionId },
@@ -975,16 +998,14 @@ router.post("/cancel-approve/:orderId", adminMiddleware, async (req, res) => {
           refundResponseLog: refundResult,
         }
       );
-      return res
-        .status(400)
-        .json({ message: "İade işlemi başarısız.", details: refundResult });
+
+      return res.status(400).json({
+        message: "İade işlemi başarısız.",
+        details: refundResult,
+      });
     }
   } catch (error) {
-    logger.error(
-      `[cancel-approve] İade hatası: ${error.message || error} - Sipariş: ${
-        order ? order._id : "bilinmiyor"
-      }`
-    );
+    logger.error(`[cancel-approve] İade hatası: ${error.message || error} - Sipariş: ${order ? order._id : "bilinmiyor"}`);
 
     if (order) {
       await PaymentSuccess.findOneAndUpdate(
@@ -995,9 +1016,11 @@ router.post("/cancel-approve/:orderId", adminMiddleware, async (req, res) => {
         }
       );
     }
-    return res
-      .status(500)
-      .json({ message: "Bir hata oluştu", error: error.message || error });
+
+    return res.status(500).json({
+      message: "Bir hata oluştu",
+      error: error.message || error,
+    });
   }
 });
 

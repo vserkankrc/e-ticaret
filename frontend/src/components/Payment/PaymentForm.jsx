@@ -135,28 +135,45 @@ const PaymentForm = () => {
           }
         );
 
-        // Düzgün gelen HTML form varsa aç
-        if (response.data && typeof response.data === "string" && response.data.includes("<form")) {
-          const newWindow = window.open(
-            "",
-            "_blank",
-            "noopener,noreferrer,width=600,height=600"
+        if (
+          response.data?.threeDSHtmlContent &&
+          response.data.threeDSHtmlContent.includes("<form")
+        ) {
+          const isMobile = /iPhone|iPad|iPod|Android/i.test(
+            navigator.userAgent
           );
 
-          if (newWindow) {
-            newWindow.document.open();
-            newWindow.document.write(response.data);
-            newWindow.document.close();
+          if (isMobile) {
+            const container = document.createElement("div");
+            container.style.display = "none"; // görünmez yapıyoruz
+            container.innerHTML = response.data.threeDSHtmlContent;
+            document.body.appendChild(container);
+            const form = container.querySelector("form");
+            form.submit();
+            setTimeout(() => container.remove(), 5000); // form submit sonrası kaldır
           } else {
-            message.error("3D Secure sayfası açılamadı. Tarayıcı izinlerini kontrol edin.");
+            const newWindow = window.open(
+              "",
+              "_blank",
+              "noopener,noreferrer,width=600,height=600"
+            );
+
+            if (newWindow) {
+              newWindow.document.open();
+              newWindow.document.write(response.data.threeDSHtmlContent);
+              newWindow.document.close();
+            } else {
+              message.error(
+                "3D Secure sayfası açılamadı. Tarayıcıda açılır pencere (popup) izni verdiğinizden emin olun."
+              );
+            }
           }
         } else if (response.data?.redirectUrl) {
-          // Eğer backend redirectUrl döndürüyorsa onu kullan
           window.location.href = response.data.redirectUrl;
         } else {
           message.error("3D Secure başlatılamadı.");
+          setIsProcessingPayment(false);
         }
-
       } else {
         await axios.post("/api/orders/checkout", orderPayload, {
           withCredentials: true,
@@ -171,7 +188,6 @@ const PaymentForm = () => {
     } catch (error) {
       console.error("Sipariş oluşturulurken hata:", error);
       message.error(error.response?.data?.message || "Ödeme işlemi başarısız");
-    } finally {
       setIsProcessingPayment(false);
     }
   };

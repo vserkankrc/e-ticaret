@@ -18,18 +18,24 @@ const Header = ({ setIsSearchShow }) => {
   const toggleMenu = () => setMenuActive((prev) => !prev);
 
   const handleLogout = async () => {
-    try {
-      await api.post("/api/auth/logout");
-      clearCart();
-      localStorage.removeItem("user");
-      logout();
-      message.success("Çıkış başarılı.");
-      window.location.href = "/"; // Sayfayı tam yenile
-    } catch (error) {
-      console.error("Çıkış hatası:", error);
-      message.error("Çıkış işlemi başarısız.");
-    }
-  };
+  try {
+    // Sunucu logout API'si: token çerezini temizlemeli
+    await api.post("/api/auth/logout");
+
+    clearCart(); // varsa sepeti temizle
+    logout();    // context veya global state temizliği
+    localStorage.removeItem("user"); // varsa localStorage'dan da temizle
+
+    message.success("Çıkış başarılı.");
+
+    // Tam sayfa yenileme
+    window.location.href = "/";
+  } catch (error) {
+    console.error("Çıkış hatası:", error);
+    message.error("Çıkış işlemi başarısız.");
+  }
+};
+
 
   return (
     <header>
