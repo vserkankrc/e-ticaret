@@ -1,3 +1,4 @@
+/* eslint-disable no-unused-vars */
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import {
@@ -11,28 +12,23 @@ import {
   Spin,
 } from "antd";
 import { UploadOutlined } from "@ant-design/icons";
-import axios from "axios";
+import api from "@/utils/axios"; // Güncel Axios importu
 
 const { Option } = Select;
 
 const UpdateProductPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-
   const [form] = Form.useForm();
 
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(false);
   const [fileList, setFileList] = useState([]);
 
-  const apiUrl = import.meta.env.VITE_API_BASE_URL || "";
-
-  // Kategorileri çek
   useEffect(() => {
     const fetchCategories = async () => {
       try {
-        const res = await axios.get(`${apiUrl}/api/categories`);
-        // API yapısına göre kategoriler değişebilir
+        const res = await api.get("/api/categories");
         const cats = Array.isArray(res.data.categories)
           ? res.data.categories
           : Array.isArray(res.data)
@@ -40,25 +36,22 @@ const UpdateProductPage = () => {
           : [];
 
         setCategories(cats);
-      // eslint-disable-next-line no-unused-vars
       } catch (error) {
         message.error("Kategoriler yüklenirken hata oluştu.");
       }
     };
     fetchCategories();
-  }, [apiUrl]);
+  }, []);
 
-  // Ürün verisini çek
   useEffect(() => {
     if (!id) return;
 
     const fetchProduct = async () => {
       setLoading(true);
       try {
-        const res = await axios.get(`${apiUrl}/api/products/${id}`);
+        const res = await api.get(`/api/products/${id}`);
         const data = res.data.data || res.data;
 
-        // Ürün detayından kategori sadece id geliyorsa direkt atıyoruz
         const categoryId =
           typeof data.category === "string"
             ? data.category
@@ -68,7 +61,7 @@ const UpdateProductPage = () => {
           name: data.name,
           description: data.description,
           price: data.price ?? 0,
-          stock: data.stock ?? 0,
+          stock: data.quantity ?? 0, // Backend quantity ise burada stock’a set ediyoruz
           category: categoryId,
         });
 
@@ -79,7 +72,6 @@ const UpdateProductPage = () => {
           url,
         }));
         setFileList(files);
-      // eslint-disable-next-line no-unused-vars
       } catch (error) {
         message.error("Ürün bilgileri yüklenirken hata oluştu.");
       } finally {
@@ -88,7 +80,7 @@ const UpdateProductPage = () => {
     };
 
     fetchProduct();
-  }, [id, apiUrl, form]);
+  }, [id, form]);
 
   const handleUploadChange = ({ fileList: newFileList }) => {
     setFileList(newFileList);
@@ -120,13 +112,15 @@ const UpdateProductPage = () => {
 
       const updatedProduct = {
         ...values,
+        quantity: values.stock, // stock -> quantity olarak gönderiliyor
         images,
       };
 
-      await axios.put(`${apiUrl}/api/products/${id}`, updatedProduct);
+      delete updatedProduct.stock; // stock'ı gönderme
+
+      await api.put(`/api/products/${id}`, updatedProduct);
       message.success("Ürün başarıyla güncellendi.");
       navigate("/admin/products");
-    // eslint-disable-next-line no-unused-vars
     } catch (error) {
       message.error("Ürün güncellenirken hata oluştu.");
     } finally {

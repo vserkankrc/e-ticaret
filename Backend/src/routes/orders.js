@@ -273,19 +273,32 @@ router.post("/checkout/3d/initialize", authMiddleware, async (req, res) => {
       agreementAccepted,
     } = req.body;
 
+    // Gerekli validasyonlar
     if (!agreementAccepted) {
+      console.error("Sözleşme kabul edilmedi.");
       return res.status(400).json({ message: "Sözleşme kabul edilmedi." });
     }
 
     if (!products || !Array.isArray(products) || products.length === 0) {
+      console.error("Ürün bilgileri eksik.");
       return res.status(400).json({ message: "Ürün bilgileri eksik." });
     }
 
     if (!address) {
+      console.error("Adres bilgisi eksik.");
       return res.status(400).json({ message: "Adres bilgisi eksik." });
     }
 
-    if (!card || (!card.savedCardId && (!card.cardHolderName || !card.cardNumber || !card.expireMonth || !card.expireYear || !card.cvc))) {
+    if (
+      !card ||
+      (!card.savedCardId &&
+        (!card.cardHolderName ||
+          !card.cardNumber ||
+          !card.expireMonth ||
+          !card.expireYear ||
+          !card.cvc))
+    ) {
+      console.error("Kart bilgileri eksik.");
       return res.status(400).json({ message: "Kart bilgileri eksik." });
     }
 
@@ -303,7 +316,8 @@ router.post("/checkout/3d/initialize", authMiddleware, async (req, res) => {
       basketId,
       paymentChannel: "WEB",
       paymentGroup: "PRODUCT",
-      callbackUrl: "https://api.tercihsepetim.com/api/orders/checkout/3d/callback",
+      callbackUrl:
+        "https://api.tercihsepetim.com/api/orders/checkout/3d/callback",
 
       paymentCard: {
         cardHolderName: card.cardHolderName,
@@ -351,15 +365,25 @@ router.post("/checkout/3d/initialize", authMiddleware, async (req, res) => {
     };
 
     iyzipay.threedsInitialize.create(paymentData, (err, result) => {
-      if (err || result.status !== "success") {
-        console.error("3D Secure başlatılamadı:", err || result.errorMessage);
+      if (err) {
+        console.error("3D Secure başlatılamadı - Hata:", err);
         return res.status(400).json({
           message: "3D Secure başlatılamadı",
-          error: err || result.errorMessage,
+          error: err,
         });
       }
 
-      // 3D ödeme için frontend'e gönderilen içerik veya redirectUrl
+      if (result.status !== "success") {
+        console.error("3D Secure API cevabı başarısız:", result);
+        return res.status(400).json({
+          message: "3D Secure başlatılamadı",
+          error: result.errorMessage,
+          rawResponse: result,
+        });
+      }
+
+      console.log("3D Secure başlatıldı, sonuç:", result);
+
       return res.status(200).json({
         status: "success",
         redirectUrl: result.redirectUrl || null,
@@ -371,6 +395,7 @@ router.post("/checkout/3d/initialize", authMiddleware, async (req, res) => {
     res.status(500).json({ message: "Sunucu hatası", error: error.message });
   }
 });
+
 
 // === 3D Secure Callback ===
 router.post("/checkout/3d/callback", async (req, res) => {

@@ -2,7 +2,7 @@
 import { useState, useEffect, useContext } from "react";
 import { useNavigate } from "react-router-dom";
 import { message } from "antd";
-import axios from "@/utils/axios";
+import api from "@/utils/axios"; // ✅ Özel axios instance
 import { CartContext } from "@/context/CartProvider";
 
 import AddressAndCustomerTypeForm from "./AddressAndCustomerTypeForm";
@@ -124,57 +124,57 @@ const PaymentForm = () => {
 
     try {
       setIsProcessingPayment(true);
+
       if (use3DSecure) {
-        // window.open'u önce çağırıyoruz
-        const newWindow = window.open(
-          "",
-          "_blank",
-          "noopener,noreferrer,width=600,height=600"
-        );
-
-        if (!newWindow) {
-          message.error(
-            "3D Secure sayfası açılamadı. Tarayıcıda açılır pencere (popup) izni verdiğinizden emin olun."
-          );
-          setIsProcessingPayment(false);
-          return;
-        }
-
-        const response = await axios.post(
+        const response = await api.post(
           "/api/orders/checkout/3d/initialize",
-          orderPayload,
-          {
-            withCredentials: true,
-            headers: { "Content-Type": "application/json" },
-          }
+          orderPayload
         );
 
         if (response.data?.threeDSHtmlContent) {
           const decodedHtml = atob(response.data.threeDSHtmlContent);
 
           if (decodedHtml.includes("<form")) {
-            newWindow.document.open();
-            newWindow.document.write(decodedHtml);
-            newWindow.document.close();
-          } else if (response.data?.redirectUrl) {
-            newWindow.location.href = response.data.redirectUrl;
+            const isMobile = /iPhone|iPad|iPod|Android/i.test(
+              navigator.userAgent
+            );
+
+            if (isMobile) {
+              const container = document.createElement("div");
+              container.style.display = "none";
+              container.innerHTML = decodedHtml;
+              document.body.appendChild(container);
+              const form = container.querySelector("form");
+              form.submit();
+              setTimeout(() => container.remove(), 5000);
+            } else {
+              const newWindow = window.open(
+                "",
+                "_blank",
+                "noopener,noreferrer,width=600,height=600"
+              );
+              if (newWindow) {
+                newWindow.document.open();
+                newWindow.document.write(decodedHtml);
+                newWindow.document.close();
+              } else {
+                message.error(
+                  "3D Secure sayfası açılamadı. Tarayıcıda açılır pencere (popup) izni verdiğinizden emin olun."
+                );
+              }
+            }
           } else {
-            newWindow.close();
-            message.error("3D Secure başlatılamadı.");
+            message.error("3D Secure içeriği geçersiz.");
             setIsProcessingPayment(false);
           }
+        } else if (response.data?.redirectUrl) {
+          window.location.href = response.data.redirectUrl;
         } else {
-          newWindow.close();
-          message.error("3D Secure içeriği alınamadı.");
+          message.error("3D Secure başlatılamadı.");
           setIsProcessingPayment(false);
         }
       } else {
-        // 3D Secure kapalıysa normal ödeme
-        await axios.post("/api/orders/checkout", orderPayload, {
-          withCredentials: true,
-          headers: { "Content-Type": "application/json" },
-        });
-
+        await api.post("/api/orders/checkout", orderPayload);
         message.success("Ödeme başarılı! Siparişiniz oluşturuldu");
         localStorage.removeItem("paymentInfo");
         clearCart();

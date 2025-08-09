@@ -1,7 +1,7 @@
 import { useState, useEffect, useContext } from "react";
 import PropTypes from "prop-types";
 import { Link, useNavigate } from "react-router-dom";
-import axios from "axios";
+import api from "@/utils/axios";
 import { CartContext } from "../../context/CartProvider";
 import { useAuth } from "../../context/AuthContext";
 import "./ProductItem.css";
@@ -27,14 +27,18 @@ const ProductItem = ({ productItem }) => {
 
       try {
         setFavLoading(true);
-        const res = await axios.get("/api/favorites", {
+        const res = await api.get("/api/favorites", {
           withCredentials: true,
         });
 
-        const favorites = res.data;
+        const favorites = Array.isArray(res.data) ? res.data : [];
+
         const found = favorites.some(
-          (fav) => fav.productId._id === productItem._id
+          (fav) =>
+            fav?.productId?._id === productItem._id ||
+            fav?._id === productItem._id
         );
+
         setIsFavorite(found);
       } catch (error) {
         console.error("Favoriler alınamadı:", error);
@@ -57,13 +61,13 @@ const ProductItem = ({ productItem }) => {
 
     try {
       if (isFavorite) {
-        await axios.delete(`/api/favorites/${productItem._id}`, {
+        await api.delete(`/api/favorites/${productItem._id}`, {
           withCredentials: true,
         });
         setIsFavorite(false);
         message.info("Favorilerden çıkarıldı.");
       } else {
-        await axios.post(
+        await api.post(
           "/api/favorites",
           { productId: productItem._id },
           { withCredentials: true }
@@ -136,7 +140,6 @@ const ProductItem = ({ productItem }) => {
           )}
         </Link>
 
-        {/* Etiket: Tükendi / Tükeniyor */}
         {productItem.quantity === 0 && (
           <div className="product-badge sold-out">Tükendi</div>
         )}

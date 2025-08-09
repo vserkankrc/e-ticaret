@@ -89,3 +89,17 @@
 {"level":"info","message":"[cancel-approve] Kullanılacak transactionId: 27078363"}
 {"level":"info","message":"[cancel-approve] İade edilecek tutar: 1300 - Sipariş: 688fcbe9c8e36b521e9e6093"}
 {"level":"error","message":"[cancel-approve] İade hatası: Üye işyerinin bakiyesi bu iadeyi yapmak için yetersiz - Sipariş: 688fcbe9c8e36b521e9e6093"}
+{"level":"info","message":"Ödeme başarıyla gerçekleşti","paymentId":"25111016","price":"1300","type":"payment-success","userEmail":"serkan_krc@outlook.com"}
+{"level":"info","message":"[2025-08-07T16:20:42.370Z] ✅ serkan_krc@outlook.com (683b3e27d919ba49c1efae29) için iptal maili başarıyla gönderildi. Sipariş: 6894d251fa6944d55ed13ea8"}
+{"level":"info","message":"[cancel-approve] Sipariş verisi getirildi: 6894d251fa6944d55ed13ea8"}
+{"level":"info","message":"[cancel-approve] Kullanılacak transactionId: 27100663"}
+{"level":"info","message":"[cancel-approve] İade edilecek tutar: 1300 - Sipariş: 6894d251fa6944d55ed13ea8"}
+{"level":"error","message":"[cancel-approve] İade hatası: Üye işyerinin bakiyesi bu iadeyi yapmak için yetersiz - Sipariş: 6894d251fa6944d55ed13ea8"}
+{"level":"info","message":"[cancel-approve] Sipariş verisi getirildi: 688fcbe9c8e36b521e9e6093"}
+{"level":"info","message":"[cancel-approve] Kullanılacak transactionId: 27078363"}
+{"level":"info","message":"[cancel-approve] İade edilecek tutar: 1300 - Sipariş: 688fcbe9c8e36b521e9e6093"}
+{"level":"error","message":"[cancel-approve] İade hatası: Üye işyerinin bakiyesi bu iadeyi yapmak için yetersiz - Sipariş: 688fcbe9c8e36b521e9e6093"}
+{"level":"info","message":"[cancel-approve] Sipariş verisi getirildi: 688fa5d36912c9a36eb51955"}
+{"level":"info","message":"[cancel-approve] Kullanılacak transactionId: 27078029"}
+{"level":"info","message":"[cancel-approve] İade edilecek tutar: 1300 - Sipariş: 688fa5d36912c9a36eb51955"}
+{"level":"error","message":"[cancel-approve] İade hatası: Üye işyerinin bakiyesi bu iadeyi yapmak için yetersiz - Sipariş: 688fa5d36912c9a36eb51955"}

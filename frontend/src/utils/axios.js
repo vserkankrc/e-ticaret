@@ -1,6 +1,7 @@
 // src/utils/axios.js
 import axios from "axios";
 import { message } from "antd";
+import Cookies from "js-cookie";
 
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_BASE_URL,
@@ -13,10 +14,10 @@ api.interceptors.response.use(
   (error) => {
     if (error.response && error.response.status === 401) {
       message.error("Oturum süreniz doldu. Lütfen tekrar giriş yapın.");
-      
-      // Token süresi doldu → localStorage'ı temizle
-      localStorage.removeItem("user");
-      
+
+      // 🍪 Cookie'den token'i sil
+      Cookies.remove("token");
+
       // Kullanıcıyı login sayfasına yönlendir
       window.location.href = "/login";
     }
@@ -25,4 +26,4 @@ api.interceptors.response.use(
   }
 );
 
-export default api; 
+export default api;
