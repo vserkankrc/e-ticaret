@@ -60,6 +60,16 @@ const PaymentForm = () => {
 
   const validateCVC = (value) => /^\d{3,4}$/.test(value);
 
+  // UTF-8 destekli Base64 decode
+  const decodeBase64Utf8 = (base64) => {
+    const binary = atob(base64);
+    const bytes = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i++) {
+      bytes[i] = binary.charCodeAt(i);
+    }
+    return new TextDecoder("utf-8").decode(bytes);
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (isProcessingPayment) return;
@@ -124,22 +134,8 @@ const PaymentForm = () => {
 
     try {
       setIsProcessingPayment(true);
+
       if (use3DSecure) {
-        // window.open'u önce çağırıyoruz
-        const newWindow = window.open(
-          "",
-          "_blank",
-          "noopener,noreferrer,width=600,height=600"
-        );
-
-        if (!newWindow) {
-          message.error(
-            "3D Secure sayfası açılamadı. Tarayıcıda açılır pencere (popup) izni verdiğinizden emin olun."
-          );
-          setIsProcessingPayment(false);
-          return;
-        }
-
         const response = await axios.post(
           "/api/orders/checkout/3d/initialize",
           orderPayload,
@@ -150,26 +146,24 @@ const PaymentForm = () => {
         );
 
         if (response.data?.threeDSHtmlContent) {
-          const decodedHtml = atob(response.data.threeDSHtmlContent);
+          const decodedHtml = decodeBase64Utf8(response.data.threeDSHtmlContent);
 
-          if (decodedHtml.includes("<form")) {
-            newWindow.document.open();
-            newWindow.document.write(decodedHtml);
-            newWindow.document.close();
-          } else if (response.data?.redirectUrl) {
-            newWindow.location.href = response.data.redirectUrl;
+          const tempDiv = document.createElement("div");
+          tempDiv.innerHTML = decodedHtml;
+
+          const form = tempDiv.querySelector("form");
+          if (form) {
+            document.body.appendChild(form);
+            form.submit();
           } else {
-            newWindow.close();
-            message.error("3D Secure başlatılamadı.");
+            message.error("3D Secure formu bulunamadı.");
             setIsProcessingPayment(false);
           }
         } else {
-          newWindow.close();
           message.error("3D Secure içeriği alınamadı.");
           setIsProcessingPayment(false);
         }
       } else {
-        // 3D Secure kapalıysa normal ödeme
         await axios.post("/api/orders/checkout", orderPayload, {
           withCredentials: true,
           headers: { "Content-Type": "application/json" },
