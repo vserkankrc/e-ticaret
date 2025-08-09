@@ -399,189 +399,205 @@ router.post("/checkout/3d/initialize", authMiddleware, async (req, res) => {
 
 // === 3D Secure Callback ===
 router.post("/checkout/3d/callback", async (req, res) => {
-  const { paymentId, conversationData, conversationId } = req.body;
+  try {
+    // iyzico callback'ten gelen parametreler bazen req.body, bazen req.query olabilir.
+    const paymentId = req.body.paymentId || req.query.paymentId;
+    const conversationId = req.body.conversationId || req.query.conversationId;
+    const conversationData = req.body.conversationData || req.query.conversationData;
 
-  const request = {
-    locale: "tr",
-    conversationId,
-    paymentId,
-    conversationData,
-  };
-
-  iyzipay.threedsPayment.create(request, async (err, result) => {
-    if (err || result.status !== "success") {
-      console.error("3D ödeme doğrulama hatası:", err || result);
+    if (!paymentId || !conversationId || !conversationData) {
+      console.error("3D callback - gerekli parametreler eksik");
       return res.redirect("https://www.tercihsepetim.com/payment-failed");
     }
 
-    try {
-      // Ödeme başarılı, burada sipariş detayları frontend'den gelmeli (örn. post body)
-      const {
-        userId,
-        products,
-        totalAmount,
-        trackingNumber,
-        address,
-        paymentMethod,
-        agreementAccepted,
-        card,
-        saveCard,
-      } = req.body;
+    const request = {
+      locale: "tr",
+      conversationId,
+      paymentId,
+      conversationData,
+    };
 
-      // Temel validasyonlar
-      if (
-        !products ||
-        !Array.isArray(products) ||
-        products.length === 0 ||
-        !address ||
-        !paymentMethod ||
-        agreementAccepted !== true
-      ) {
-        console.error("3D callback - eksik sipariş bilgisi");
+    // iyzico threedsPayment işlemini Promise ile sarmalayalım
+    const result = await new Promise((resolve, reject) => {
+      iyzipay.threedsPayment.create(request, (err, res) => {
+        if (err) reject(err);
+        else resolve(res);
+      });
+    });
+
+    if (result.status !== "success") {
+      console.error("3D ödeme doğrulama başarısız:", result);
+      return res.redirect("https://www.tercihsepetim.com/payment-failed");
+    }
+
+    // Ödeme başarılıysa, frontend'den sipariş detaylarını bekliyoruz.
+    // Burada yine req.body'den çekiyoruz.
+    const {
+      userId,
+      products,
+      totalAmount,
+      trackingNumber,
+      address,
+      paymentMethod,
+      agreementAccepted,
+      card,
+      saveCard,
+    } = req.body;
+
+    // Temel validasyon
+    if (
+      !products ||
+      !Array.isArray(products) ||
+      products.length === 0 ||
+      !address ||
+      !paymentMethod ||
+      agreementAccepted !== true ||
+      !userId
+    ) {
+      console.error("3D callback - eksik sipariş bilgisi veya userId");
+      return res.redirect("https://www.tercihsepetim.com/payment-failed");
+    }
+
+    const user = await User.findById(userId);
+    if (!user) {
+      console.error("3D callback - kullanıcı bulunamadı");
+      return res.redirect("https://www.tercihsepetim.com/payment-failed");
+    }
+
+    const registerCard = saveCard ? "1" : "0";
+
+    let paymentCard = {};
+    if (card?.savedCardId) {
+      const savedCard = await SavedCard.findById(card.savedCardId);
+      if (!savedCard) {
+        console.error("3D callback - kayıtlı kart bulunamadı");
         return res.redirect("https://www.tercihsepetim.com/payment-failed");
       }
+      paymentCard = {
+        cardUserKey: savedCard.cardUserKey,
+        cardToken: savedCard.cardToken,
+      };
+    } else {
+      paymentCard = {
+        cardHolderName: card.cardHolderName,
+        cardNumber: card.cardNumber,
+        expireMonth: card.expireMonth,
+        expireYear: card.expireYear,
+        cvc: card.cvc,
+        registerCard,
+      };
+    }
 
-      const user = await User.findById(userId);
-      if (!user) {
-        console.error("3D callback - kullanıcı bulunamadı");
-        return res.redirect("https://www.tercihsepetim.com/payment-failed");
-      }
-
-      const registerCard = saveCard ? "1" : "0";
-
-      // Kart bilgisi
-      let paymentCard = {};
-      if (card?.savedCardId) {
-        const savedCard = await SavedCard.findById(card.savedCardId);
-        if (!savedCard) {
-          console.error("3D callback - kayıtlı kart bulunamadı");
-          return res.redirect("https://www.tercihsepetim.com/payment-failed");
-        }
-        paymentCard = {
-          cardUserKey: savedCard.cardUserKey,
-          cardToken: savedCard.cardToken,
-        };
-      } else {
-        paymentCard = {
-          cardHolderName: card.cardHolderName,
-          cardNumber: card.cardNumber,
-          expireMonth: card.expireMonth,
-          expireYear: card.expireYear,
-          cvc: card.cvc,
-          registerCard,
-        };
-      }
-
-      // Kayıtlı kart oluşturma işlemi (iyzico'dan dönen tokenlar varsa)
-      if (
-        saveCard &&
-        !card.savedCardId &&
-        result.cardToken &&
-        result.cardUserKey
-      ) {
-        await SavedCard.create({
-          userId: user._id,
-          cardToken: result.cardToken,
-          cardUserKey: result.cardUserKey,
-          cardHolderName: card.cardHolderName,
-          cardType: result.cardType || "Unknown",
-          last4Digits: card.cardNumber.slice(-4),
-          expireMonth: card.expireMonth,
-          expireYear: card.expireYear,
-        });
-      }
-
-      // Stok güncelleme
-      for (const item of products) {
-        await Products.findByIdAndUpdate(item.productId, {
-          $inc: { quantity: -item.quantity },
-        });
-      }
-
-      const paymentTransactionId =
-        result.itemTransactions && result.itemTransactions.length > 0
-          ? result.itemTransactions[0].paymentTransactionId
-          : "";
-
-      // Sipariş kaydetme
-      await new Order({
+    // Kart kaydetme işlemi
+    if (
+      saveCard &&
+      !card.savedCardId &&
+      result.cardToken &&
+      result.cardUserKey
+    ) {
+      await SavedCard.create({
         userId: user._id,
-        products: products.map((item, i) => ({
-          productId: item.productId,
-          quantity: item.quantity,
-          price: item.price,
-          image: item.image || "",
-          color: item.color || null,
-          size: item.size || null,
-          paymentTransactionId:
-            result.itemTransactions?.[i]?.paymentTransactionId || "",
-        })),
-        paymentTransactionId,
-        totalAmount,
-        trackingNumber: trackingNumber || nanoid(),
-        address: {
-          district: address.district,
-          province: address.province,
-          postalCode: address.postalCode,
-          addressDetail: address.addressDetail,
-          country: address.country || "Türkiye",
-        },
-        paymentMethod,
-        agreementAccepted,
-        paymentStatus: "completed",
-        paymentId: result.paymentId || "",
-      }).save();
+        cardToken: result.cardToken,
+        cardUserKey: result.cardUserKey,
+        cardHolderName: card.cardHolderName,
+        cardType: result.cardType || "Unknown",
+        last4Digits: card.cardNumber.slice(-4),
+        expireMonth: card.expireMonth,
+        expireYear: card.expireYear,
+      });
+    }
 
-      // Ödeme başarılı log kaydı
-      await new PaymentSuccess({
-        status: "success",
-        conversationId,
-        paymentId: result.paymentId || `PMT-${Date.now()}`,
-        price: totalAmount,
-        paidPrice: totalAmount,
-        currency: "TRY",
-        cartId: nanoid(),
-        userId: user._id,
-        itemTransactions: (result.itemTransactions || []).map((tx, i) => ({
-          uid: `itm-${i}-${Date.now()}`,
-          itemId: tx.itemId || products[i]?.productId,
-          price: tx.price,
-          paidPrice: tx.paidPrice,
-          paymentTransactionId: tx.paymentTransactionId,
-        })),
-        log: {
-          message: "3D ödeme başarılı.",
-          userEmail: user.email,
-          iyzicoRawResponse: result,
-        },
-      }).save();
+    // Stok güncelleme
+    for (const item of products) {
+      await Products.findByIdAndUpdate(item.productId, {
+        $inc: { quantity: -item.quantity },
+      });
+    }
 
-      // Mail gönderimi
-      await sendPaymentSuccessEmail({
-        userName: user.name,
+    const paymentTransactionId =
+      result.itemTransactions && result.itemTransactions.length > 0
+        ? result.itemTransactions[0].paymentTransactionId
+        : "";
+
+    // Sipariş kaydetme
+    await new Order({
+      userId: user._id,
+      products: products.map((item, i) => ({
+        productId: item.productId,
+        quantity: item.quantity,
+        price: item.price,
+        image: item.image || "",
+        color: item.color || null,
+        size: item.size || null,
+        paymentTransactionId:
+          result.itemTransactions?.[i]?.paymentTransactionId || "",
+      })),
+      paymentTransactionId,
+      totalAmount,
+      trackingNumber: trackingNumber || nanoid(),
+      address: {
+        district: address.district,
+        province: address.province,
+        postalCode: address.postalCode,
+        addressDetail: address.addressDetail,
+        country: address.country || "Türkiye",
+      },
+      paymentMethod,
+      agreementAccepted,
+      paymentStatus: "completed",
+      paymentId: result.paymentId || "",
+    }).save();
+
+    // Başarılı ödeme loglama
+    await new PaymentSuccess({
+      status: "success",
+      conversationId,
+      paymentId: result.paymentId || `PMT-${Date.now()}`,
+      price: totalAmount,
+      paidPrice: totalAmount,
+      currency: "TRY",
+      cartId: nanoid(),
+      userId: user._id,
+      itemTransactions: (result.itemTransactions || []).map((tx, i) => ({
+        uid: `itm-${i}-${Date.now()}`,
+        itemId: tx.itemId || products[i]?.productId,
+        price: tx.price,
+        paidPrice: tx.paidPrice,
+        paymentTransactionId: tx.paymentTransactionId,
+      })),
+      log: {
+        message: "3D ödeme başarılı.",
         userEmail: user.email,
-        items: products.map((p) => ({
-          title: p.name,
-          quantity: p.quantity,
-        })),
-        totalPrice: totalAmount,
-        currency: "TL",
-      });
+        iyzicoRawResponse: result,
+      },
+    }).save();
 
-      // SMS gönderimi
-      await sendSms({
-        to: process.env.ADMIN_PHONE_NUMBER,
-        message: `📦 Yeni sipariş alındı!\n👤 Müşteri: ${user.name}\n💰 Tutar: ₺${totalAmount}\n🛒 Ürün adedi: ${products.length}`,
-      });
+    // Mail gönderimi
+    await sendPaymentSuccessEmail({
+      userName: user.name,
+      userEmail: user.email,
+      items: products.map((p) => ({
+        title: p.name,
+        quantity: p.quantity,
+      })),
+      totalPrice: totalAmount,
+      currency: "TL",
+    });
 
-      // Başarılı ödeme sonrası frontend sayfasına yönlendir
-      return res.redirect("https://www.tercihsepetim.com/payment-success");
-    } catch (error) {
-      console.error("3D callback işlem hatası:", error);
-      return res.redirect("https://www.tercihsepetim.com/payment-failed");
-    }
-  });
+    // SMS gönderimi
+    await sendSms({
+      to: process.env.ADMIN_PHONE_NUMBER,
+      message: `📦 Yeni sipariş alındı!\n👤 Müşteri: ${user.name}\n💰 Tutar: ₺${totalAmount}\n🛒 Ürün adedi: ${products.length}`,
+    });
+
+    // Başarılı ödeme sonrası frontend sayfasına yönlendir
+    return res.redirect("https://www.tercihsepetim.com/payment-success");
+  } catch (error) {
+    console.error("3D callback işlem hatası:", error);
+    return res.redirect("https://www.tercihsepetim.com/payment-failed");
+  }
 });
+
 
 
 
