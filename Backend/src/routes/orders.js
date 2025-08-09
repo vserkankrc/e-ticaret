@@ -399,6 +399,7 @@ router.post("/checkout/3d/initialize", authMiddleware, async (req, res) => {
 
 // === 3D Secure Callback ===
 router.post("/checkout/3d/callback", async (req, res) => {
+  console.log("Callback body:", req.body);
   try {
     // iyzico callback'ten gelen parametreler bazen req.body, bazen req.query olabilir.
     const paymentId = req.body.paymentId || req.query.paymentId;
