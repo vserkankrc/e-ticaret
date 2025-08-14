@@ -1,4 +1,4 @@
-import { Routes, Route, Navigate } from "react-router-dom";
+import { Routes, Route, } from "react-router-dom";
 import HomePage from "./pages/HomePage";
 import AboutUsPage from "./pages/AboutUsPage";
 import QuestionsPage from "./pages/QuestionsPage";
@@ -57,7 +57,7 @@ function App() {
         <Route path="/profile/*" element={<ProfilePages />} />
 
         {/* Admin Paneli */}
-        <Route path="/admin" element={<Navigate to="/admin/users" />} />
+        
         <Route path="/admin/users" element={<UserPage />} />
         <Route path="/admin/categories" element={<CategoryPage />} />
         <Route path="/admin/categories/update/:id" element={<UpdateCategoryPage />} />

@@ -17,6 +17,7 @@ import logger from "../utils/logs.js";
 import Users from "../models/Users.js";
 import { sendSms } from "../utils/sendSms.js";
 import iyzipay from "../services/iyzico/connection/iyzipay.js";
+import bodyParser from "body-parser";
 
 const router = express.Router();
 
@@ -257,13 +258,12 @@ router.post("/checkout", authMiddleware, async (req, res) => {
   }
 });
 
-
-
-
 // === 3D Secure Payment Initialization ===
 router.post("/checkout/3d/initialize", authMiddleware, async (req, res) => {
   try {
     const user = req.user;
+    console.log("🧑 Kullanıcı:", user);
+
     const {
       products,
       totalAmount,
@@ -272,23 +272,15 @@ router.post("/checkout/3d/initialize", authMiddleware, async (req, res) => {
       saveCard,
       agreementAccepted,
     } = req.body;
+    console.log("📦 Gönderilen body:", req.body);
 
-    // Gerekli validasyonlar
-    if (!agreementAccepted) {
-      console.error("Sözleşme kabul edilmedi.");
+    // Validasyon
+    if (!agreementAccepted)
       return res.status(400).json({ message: "Sözleşme kabul edilmedi." });
-    }
-
-    if (!products || !Array.isArray(products) || products.length === 0) {
-      console.error("Ürün bilgileri eksik.");
+    if (!products?.length)
       return res.status(400).json({ message: "Ürün bilgileri eksik." });
-    }
-
-    if (!address) {
-      console.error("Adres bilgisi eksik.");
+    if (!address)
       return res.status(400).json({ message: "Adres bilgisi eksik." });
-    }
-
     if (
       !card ||
       (!card.savedCardId &&
@@ -298,13 +290,28 @@ router.post("/checkout/3d/initialize", authMiddleware, async (req, res) => {
           !card.expireYear ||
           !card.cvc))
     ) {
-      console.error("Kart bilgileri eksik.");
       return res.status(400).json({ message: "Kart bilgileri eksik." });
     }
 
     const conversationId = nanoid();
     const basketId = nanoid();
     const registerCard = saveCard ? "1" : "0";
+
+    // Sipariş verilerini encode et
+    const conversationData = Buffer.from(
+      JSON.stringify({
+        userId: user._id.toString(),
+        products,
+        totalAmount,
+        trackingNumber: nanoid(),
+        address,
+        paymentMethod: "credit_card",
+        agreementAccepted,
+        card,
+        saveCard,
+      })
+    ).toString("base64");
+    console.log("💾 Encoded conversationData:", conversationData);
 
     const paymentData = {
       locale: "tr",
@@ -317,8 +324,8 @@ router.post("/checkout/3d/initialize", authMiddleware, async (req, res) => {
       paymentChannel: "WEB",
       paymentGroup: "PRODUCT",
       callbackUrl:
-        "https://api.tercihsepetim.com/api/orders/checkout/3d/callback",
-
+        "https://www.tercihsepetim.com/api/orders/checkout/3d/callback",
+      conversationData,
       paymentCard: {
         cardHolderName: card.cardHolderName,
         cardNumber: card.cardNumber,
@@ -327,7 +334,6 @@ router.post("/checkout/3d/initialize", authMiddleware, async (req, res) => {
         cvc: card.cvc,
         registerCard,
       },
-
       buyer: {
         id: user._id.toString(),
         name: user.name,
@@ -340,21 +346,18 @@ router.post("/checkout/3d/initialize", authMiddleware, async (req, res) => {
         city: address.province,
         country: address.country || "Türkiye",
       },
-
       shippingAddress: {
         contactName: `${user.name} ${user.surname}`,
         city: address.province,
         country: address.country || "Türkiye",
         address: address.addressDetail,
       },
-
       billingAddress: {
         contactName: `${user.name} ${user.surname}`,
         city: address.province,
         country: address.country || "Türkiye",
         address: address.addressDetail,
       },
-
       basketItems: products.map((item) => ({
         id: item.productId || nanoid(),
         name: item.name || "Ürün",
@@ -364,26 +367,28 @@ router.post("/checkout/3d/initialize", authMiddleware, async (req, res) => {
       })),
     };
 
+    console.log("💳 Gönderilen paymentData:", paymentData);
+
     iyzipay.threedsInitialize.create(paymentData, (err, result) => {
       if (err) {
-        console.error("3D Secure başlatılamadı - Hata:", err);
-        return res.status(400).json({
-          message: "3D Secure başlatılamadı",
-          error: err,
-        });
+        console.error("❌ 3D initialize error:", err);
+        return res
+          .status(400)
+          .json({ message: "3D Secure başlatılamadı", error: err });
       }
 
       if (result.status !== "success") {
-        console.error("3D Secure API cevabı başarısız:", result);
-        return res.status(400).json({
-          message: "3D Secure başlatılamadı",
-          error: result.errorMessage,
-          rawResponse: result,
-        });
+        console.error("❌ 3D initialize failed:", result);
+        return res
+          .status(400)
+          .json({
+            message: "3D Secure başlatılamadı",
+            error: result.errorMessage,
+            rawResponse: result,
+          });
       }
 
-      console.log("3D Secure başlatıldı, sonuç:", result);
-
+      console.log("✅ 3D initialize success:", result);
       return res.status(200).json({
         status: "success",
         redirectUrl: result.redirectUrl || null,
@@ -391,218 +396,117 @@ router.post("/checkout/3d/initialize", authMiddleware, async (req, res) => {
       });
     });
   } catch (error) {
-    console.error("3D başlatma hatası:", error);
+    console.error("❌ 3D initialize hatası:", error);
     res.status(500).json({ message: "Sunucu hatası", error: error.message });
   }
 });
 
-
 // === 3D Secure Callback ===
-router.post("/checkout/3d/callback", async (req, res) => {
-  console.log("Callback body:", req.body);
-  try {
-    // iyzico callback'ten gelen parametreler bazen req.body, bazen req.query olabilir.
-    const paymentId = req.body.paymentId || req.query.paymentId;
-    const conversationId = req.body.conversationId || req.query.conversationId;
-    const conversationData = req.body.conversationData || req.query.conversationData;
+router.post(
+  "/checkout/3d/callback",
+  bodyParser.urlencoded({ extended: false }),
+  async (req, res) => {
+    console.log("====== 3D CALLBACK BAŞLADI ======");
+    console.log("📩 Gelen BODY:", req.body);
+    console.log("📩 Gelen QUERY:", req.query);
 
-    if (!paymentId || !conversationId || !conversationData) {
-      console.error("3D callback - gerekli parametreler eksik");
-      return res.redirect("https://www.tercihsepetim.com/payment-failed");
-    }
+    try {
+      const paymentId = req.body.paymentId || req.query.paymentId;
+      const conversationId =
+        req.body.conversationId || req.query.conversationId;
+      const encodedData =
+        req.body.conversationData || req.query.conversationData;
 
-    const request = {
-      locale: "tr",
-      conversationId,
-      paymentId,
-      conversationData,
-    };
-
-    // iyzico threedsPayment işlemini Promise ile sarmalayalım
-    const result = await new Promise((resolve, reject) => {
-      iyzipay.threedsPayment.create(request, (err, res) => {
-        if (err) reject(err);
-        else resolve(res);
-      });
-    });
-
-    if (result.status !== "success") {
-      console.error("3D ödeme doğrulama başarısız:", result);
-      return res.redirect("https://www.tercihsepetim.com/payment-failed");
-    }
-
-    // Ödeme başarılıysa, frontend'den sipariş detaylarını bekliyoruz.
-    // Burada yine req.body'den çekiyoruz.
-    const {
-      userId,
-      products,
-      totalAmount,
-      trackingNumber,
-      address,
-      paymentMethod,
-      agreementAccepted,
-      card,
-      saveCard,
-    } = req.body;
-
-    // Temel validasyon
-    if (
-      !products ||
-      !Array.isArray(products) ||
-      products.length === 0 ||
-      !address ||
-      !paymentMethod ||
-      agreementAccepted !== true ||
-      !userId
-    ) {
-      console.error("3D callback - eksik sipariş bilgisi veya userId");
-      return res.redirect("https://www.tercihsepetim.com/payment-failed");
-    }
-
-    const user = await User.findById(userId);
-    if (!user) {
-      console.error("3D callback - kullanıcı bulunamadı");
-      return res.redirect("https://www.tercihsepetim.com/payment-failed");
-    }
-
-    const registerCard = saveCard ? "1" : "0";
-
-    let paymentCard = {};
-    if (card?.savedCardId) {
-      const savedCard = await SavedCard.findById(card.savedCardId);
-      if (!savedCard) {
-        console.error("3D callback - kayıtlı kart bulunamadı");
+      if (!paymentId || !conversationId || !encodedData) {
+        console.error("❌ 3D callback - gerekli parametreler eksik:", {
+          paymentId,
+          conversationId,
+          encodedData,
+        });
         return res.redirect("https://www.tercihsepetim.com/payment-failed");
       }
-      paymentCard = {
-        cardUserKey: savedCard.cardUserKey,
-        cardToken: savedCard.cardToken,
-      };
-    } else {
-      paymentCard = {
-        cardHolderName: card.cardHolderName,
-        cardNumber: card.cardNumber,
-        expireMonth: card.expireMonth,
-        expireYear: card.expireYear,
-        cvc: card.cvc,
-        registerCard,
-      };
-    }
 
-    // Kart kaydetme işlemi
-    if (
-      saveCard &&
-      !card.savedCardId &&
-      result.cardToken &&
-      result.cardUserKey
-    ) {
-      await SavedCard.create({
+      // conversationData decode
+      let orderData;
+      try {
+        orderData = JSON.parse(
+          Buffer.from(encodedData, "base64").toString("utf8")
+        );
+      } catch (err) {
+        console.error("❌ conversationData decode edilemedi:", err);
+        return res.redirect("https://www.tercihsepetim.com/payment-failed");
+      }
+
+      console.log("📦 Callback ile gelen sipariş verisi:", orderData);
+
+      // 3D ödeme doğrulama
+      const verifyResult = await new Promise((resolve, reject) => {
+        iyzipay.threedsPayment.create(
+          {
+            locale: "tr",
+            conversationId,
+            paymentId,
+            conversationData: encodedData,
+          },
+          (err, iyzicoRes) => (err ? reject(err) : resolve(iyzicoRes))
+        );
+      });
+
+      console.log("💳 3D ödeme doğrulama sonucu:", verifyResult);
+
+      if (verifyResult.status !== "success") {
+        console.error("❌ 3D ödeme doğrulama başarısız:", verifyResult);
+        return res.redirect("https://www.tercihsepetim.com/payment-failed");
+      }
+
+      // Kullanıcıyı bul
+      const user = await User.findById(orderData.userId);
+      if (!user) {
+        console.error("❌ Kullanıcı bulunamadı:", orderData.userId);
+        return res.redirect("https://www.tercihsepetim.com/payment-failed");
+      }
+
+      // Stok güncelle
+      for (const item of orderData.products) {
+        await Products.findByIdAndUpdate(item.productId, {
+          $inc: { quantity: -item.quantity },
+        });
+      }
+
+      // Sipariş kaydet
+      const savedOrder = await new Order({
         userId: user._id,
-        cardToken: result.cardToken,
-        cardUserKey: result.cardUserKey,
-        cardHolderName: card.cardHolderName,
-        cardType: result.cardType || "Unknown",
-        last4Digits: card.cardNumber.slice(-4),
-        expireMonth: card.expireMonth,
-        expireYear: card.expireYear,
-      });
-    }
-
-    // Stok güncelleme
-    for (const item of products) {
-      await Products.findByIdAndUpdate(item.productId, {
-        $inc: { quantity: -item.quantity },
-      });
-    }
-
-    const paymentTransactionId =
-      result.itemTransactions && result.itemTransactions.length > 0
-        ? result.itemTransactions[0].paymentTransactionId
-        : "";
-
-    // Sipariş kaydetme
-    await new Order({
-      userId: user._id,
-      products: products.map((item, i) => ({
-        productId: item.productId,
-        quantity: item.quantity,
-        price: item.price,
-        image: item.image || "",
-        color: item.color || null,
-        size: item.size || null,
+        products: orderData.products.map((item, i) => ({
+          productId: item.productId,
+          quantity: item.quantity,
+          price: item.price,
+          image: item.image || "",
+          color: item.color || null,
+          size: item.size || null,
+          paymentTransactionId:
+            verifyResult.itemTransactions?.[i]?.paymentTransactionId || "",
+        })),
         paymentTransactionId:
-          result.itemTransactions?.[i]?.paymentTransactionId || "",
-      })),
-      paymentTransactionId,
-      totalAmount,
-      trackingNumber: trackingNumber || nanoid(),
-      address: {
-        district: address.district,
-        province: address.province,
-        postalCode: address.postalCode,
-        addressDetail: address.addressDetail,
-        country: address.country || "Türkiye",
-      },
-      paymentMethod,
-      agreementAccepted,
-      paymentStatus: "completed",
-      paymentId: result.paymentId || "",
-    }).save();
+          verifyResult.itemTransactions?.[0]?.paymentTransactionId || "",
+        totalAmount: orderData.totalAmount,
+        trackingNumber: orderData.trackingNumber,
+        address: orderData.address,
+        paymentMethod: orderData.paymentMethod,
+        agreementAccepted: orderData.agreementAccepted,
+        paymentStatus: "completed",
+        paymentId: verifyResult.paymentId || "",
+      }).save();
 
-    // Başarılı ödeme loglama
-    await new PaymentSuccess({
-      status: "success",
-      conversationId,
-      paymentId: result.paymentId || `PMT-${Date.now()}`,
-      price: totalAmount,
-      paidPrice: totalAmount,
-      currency: "TRY",
-      cartId: nanoid(),
-      userId: user._id,
-      itemTransactions: (result.itemTransactions || []).map((tx, i) => ({
-        uid: `itm-${i}-${Date.now()}`,
-        itemId: tx.itemId || products[i]?.productId,
-        price: tx.price,
-        paidPrice: tx.paidPrice,
-        paymentTransactionId: tx.paymentTransactionId,
-      })),
-      log: {
-        message: "3D ödeme başarılı.",
-        userEmail: user.email,
-        iyzicoRawResponse: result,
-      },
-    }).save();
+      console.log("✅ Sipariş kaydedildi:", savedOrder._id);
 
-    // Mail gönderimi
-    await sendPaymentSuccessEmail({
-      userName: user.name,
-      userEmail: user.email,
-      items: products.map((p) => ({
-        title: p.name,
-        quantity: p.quantity,
-      })),
-      totalPrice: totalAmount,
-      currency: "TL",
-    });
-
-    // SMS gönderimi
-    await sendSms({
-      to: process.env.ADMIN_PHONE_NUMBER,
-      message: `📦 Yeni sipariş alındı!\n👤 Müşteri: ${user.name}\n💰 Tutar: ₺${totalAmount}\n🛒 Ürün adedi: ${products.length}`,
-    });
-
-    // Başarılı ödeme sonrası frontend sayfasına yönlendir
-    return res.redirect("https://www.tercihsepetim.com/payment-success");
-  } catch (error) {
-    console.error("3D callback işlem hatası:", error);
-    return res.redirect("https://www.tercihsepetim.com/payment-failed");
+      // Başarılı → yönlendir
+      return res.redirect("https://www.tercihsepetim.com/payment-success");
+    } catch (error) {
+      console.error("❌ 3D callback işlem hatası:", error);
+      return res.redirect("https://www.tercihsepetim.com/payment-failed");
+    }
   }
-});
-
-
-
-
-
+);
 
 // Kayıtlı Kartları getirme
 router.get("/cards", authMiddleware, async (req, res) => {
@@ -939,7 +843,6 @@ router.post("/cancel-request/:orderId", authMiddleware, async (req, res) => {
   }
 });
 
-
 // Admin tarafından sipariş iptali
 router.post("/cancel-approve/:orderId", adminMiddleware, async (req, res) => {
   let order = null;
@@ -960,14 +863,22 @@ router.post("/cancel-approve/:orderId", adminMiddleware, async (req, res) => {
     }
 
     const transactionId = order.paymentTransactionId || order.paymentId || null;
-    logger.info(`[cancel-approve] Kullanılacak transactionId: ${transactionId}`);
+    logger.info(
+      `[cancel-approve] Kullanılacak transactionId: ${transactionId}`
+    );
 
     if (!transactionId) {
-      logger.error(`[cancel-approve] Eksik transactionId, iade yapılamaz: ${orderId}`);
-      return res.status(400).json({ message: "Ödeme transaction ID bilgisi eksik." });
+      logger.error(
+        `[cancel-approve] Eksik transactionId, iade yapılamaz: ${orderId}`
+      );
+      return res
+        .status(400)
+        .json({ message: "Ödeme transaction ID bilgisi eksik." });
     }
 
-    logger.info(`[cancel-approve] İade edilecek tutar: ${order.totalAmount} - Sipariş: ${orderId}`);
+    logger.info(
+      `[cancel-approve] İade edilecek tutar: ${order.totalAmount} - Sipariş: ${orderId}`
+    );
 
     const refundResult = await refundPayment({
       paymentTransactionId: transactionId,
@@ -975,14 +886,18 @@ router.post("/cancel-approve/:orderId", adminMiddleware, async (req, res) => {
       ip: req.ip || "85.34.78.112",
     });
 
-    logger.info(`[cancel-approve] İyzico iade cevabı: ${JSON.stringify(refundResult)}`);
+    logger.info(
+      `[cancel-approve] İyzico iade cevabı: ${JSON.stringify(refundResult)}`
+    );
 
     // 🔴 Yetersiz bakiye durumu özel olarak ele alınıyor
     if (
       refundResult.status === "failure" &&
       refundResult.errorCode === "5117"
     ) {
-      logger.error(`[cancel-approve] İyzico bakiyesi yetersiz - Sipariş: ${orderId}`);
+      logger.error(
+        `[cancel-approve] İyzico bakiyesi yetersiz - Sipariş: ${orderId}`
+      );
 
       await PaymentSuccess.findOneAndUpdate(
         { paymentId: transactionId },
@@ -1000,7 +915,9 @@ router.post("/cancel-approve/:orderId", adminMiddleware, async (req, res) => {
     }
 
     if (refundResult.status === "success") {
-      logger.info(`[cancel-approve] İade başarılı, veritabanı güncelleniyor: ${orderId}`);
+      logger.info(
+        `[cancel-approve] İade başarılı, veritabanı güncelleniyor: ${orderId}`
+      );
 
       await PaymentSuccess.findOneAndUpdate(
         { paymentId: transactionId },
@@ -1024,14 +941,22 @@ router.post("/cancel-approve/:orderId", adminMiddleware, async (req, res) => {
           orderId: order._id,
           totalAmount: order.totalAmount,
         });
-        logger.info(`[cancel-approve] İptal ve iade maili gönderildi: ${order.userId.email}`);
+        logger.info(
+          `[cancel-approve] İptal ve iade maili gönderildi: ${order.userId.email}`
+        );
       } catch (mailErr) {
         logger.error(`[cancel-approve] Mail gönderilemedi: ${mailErr.message}`);
       }
 
-      return res.status(200).json({ message: "Sipariş iptal edildi ve iade yapıldı." });
+      return res
+        .status(200)
+        .json({ message: "Sipariş iptal edildi ve iade yapıldı." });
     } else {
-      logger.error(`[cancel-approve] İade başarısız: ${JSON.stringify(refundResult)} - Sipariş: ${orderId}`);
+      logger.error(
+        `[cancel-approve] İade başarısız: ${JSON.stringify(
+          refundResult
+        )} - Sipariş: ${orderId}`
+      );
 
       await PaymentSuccess.findOneAndUpdate(
         { paymentId: transactionId },
@@ -1047,7 +972,11 @@ router.post("/cancel-approve/:orderId", adminMiddleware, async (req, res) => {
       });
     }
   } catch (error) {
-    logger.error(`[cancel-approve] İade hatası: ${error.message || error} - Sipariş: ${order ? order._id : "bilinmiyor"}`);
+    logger.error(
+      `[cancel-approve] İade hatası: ${error.message || error} - Sipariş: ${
+        order ? order._id : "bilinmiyor"
+      }`
+    );
 
     if (order) {
       await PaymentSuccess.findOneAndUpdate(

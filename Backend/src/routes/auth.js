@@ -99,7 +99,7 @@ router.post("/login", async (req, res) => {
         httpOnly: true,
         secure: process.env.NODE_ENV === "production",
         sameSite: process.env.NODE_ENV === "production" ? "strict" : "lax",
-        domain: '.tercihsepetim.com',
+       /*  domain: '.tercihsepetim.com', */
         path: "/",
         maxAge: 60 * 60 * 1000, // 1 saat
       })
@@ -157,7 +157,7 @@ router.post("/logout", (req, res) => {
     httpOnly: true,
         secure: process.env.NODE_ENV === "production",
         sameSite: process.env.NODE_ENV === "production" ? "strict" : "lax",
-        domain: '.tercihsepetim.com',
+        /* domain: '.tercihsepetim.com', */
         path: "/",
   
   });

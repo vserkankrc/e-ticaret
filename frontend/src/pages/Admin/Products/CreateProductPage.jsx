@@ -130,7 +130,7 @@ const CreateProductPage = () => {
         <Form.Item
           label="Renkler"
           name="colors"
-          rules={[{ required: true, message: "Renk seçiniz." }]}
+          rules={[{ required: false, message: "Renk seçiniz." }]}
         >
           <Select mode="multiple" placeholder="Renk seçin">
             <Option value="kırmızı">Kırmızı</Option>
@@ -144,7 +144,7 @@ const CreateProductPage = () => {
         <Form.Item
           label="Bedenler"
           name="sizes"
-          rules={[{ required: true, message: "Beden seçiniz." }]}
+          rules={[{ required: false, message: "Beden seçiniz." }]}
         >
           <Select mode="multiple" placeholder="Beden seçin">
             <Option value="s">S</Option>

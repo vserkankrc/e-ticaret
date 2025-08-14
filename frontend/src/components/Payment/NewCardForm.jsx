@@ -14,8 +14,26 @@ const NewCardForm = ({
   setSaveCard,
   setIsFlipped,
 }) => {
+  // Kart numarasını 4'erli gruplara ayırır, sadece rakamlar kabul edilir
   const formatCardNumber = (value) =>
-    value.replace(/\D/g, "").slice(0, 16).replace(/(.{4})/g, "$1 ").trim();
+    value
+      .replace(/\D/g, "")
+      .slice(0, 16)
+      .replace(/(.{4})/g, "$1 ")
+      .trim();
+
+  // Expiry Date için otomatik "/" ekler, sadece rakam kabul eder, max 5 karakter (AA/YY)
+  const formatExpiryDate = (value) => {
+    const clean = value.replace(/\D/g, "").slice(0, 4); // sadece rakam, max 4
+    if (clean.length === 0) return "";
+    if (clean.length <= 2) return clean;
+    return clean.slice(0, 2) + "/" + clean.slice(2);
+  };
+
+  const handleExpiryChange = (e) => {
+    const formatted = formatExpiryDate(e.target.value);
+    setExpiryDate(formatted);
+  };
 
   return (
     <>
@@ -44,7 +62,7 @@ const NewCardForm = ({
         type="text"
         maxLength={5}
         value={expiryDate}
-        onChange={(e) => setExpiryDate(e.target.value)}
+        onChange={handleExpiryChange}
         required
         placeholder="MM/YY"
         inputMode="numeric"

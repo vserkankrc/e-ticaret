@@ -60,7 +60,6 @@ const PaymentForm = () => {
 
   const validateCVC = (value) => /^\d{3,4}$/.test(value);
 
-  // UTF-8 destekli Base64 decode
   const decodeBase64Utf8 = (base64) => {
     const binary = atob(base64);
     const bytes = new Uint8Array(binary.length);
@@ -146,8 +145,12 @@ const PaymentForm = () => {
         );
 
         if (response.data?.threeDSHtmlContent) {
-          const decodedHtml = decodeBase64Utf8(response.data.threeDSHtmlContent);
+          // 💾 paymentId'yi sakla
+          if (response.data.paymentId) {
+            localStorage.setItem("paymentId", response.data.paymentId);
+          }
 
+          const decodedHtml = decodeBase64Utf8(response.data.threeDSHtmlContent);
           const tempDiv = document.createElement("div");
           tempDiv.innerHTML = decodedHtml;
 
