@@ -34,19 +34,21 @@ router.post("/register", async (req, res, next) => {
     await newUser.save();
 
     const token = jwt.sign(
-      { _id: newUser._id, email: newUser.email },
+      { _id: newUser._id, email: newUser.email, role: newUser.role },
       process.env.JWT_SECRET,
       { expiresIn: "1h" }
     );
 
+    const isProd = process.env.NODE_ENV === "production";
+
     res
       .cookie("token", token, {
         httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
-        sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
-        domain: "tercihsepetim.com",
-        maxAge: 1000 * 60 * 60 * 24 * 7,
+        secure: isProd,
+        sameSite: isProd ? "None" : "Lax",
+        domain: isProd ? ".tercihsepetim.com" : undefined,
         path: "/",
+        maxAge: 1000 * 60 * 60 * 24 * 7, // 7 gün
       })
       .status(201)
       .json({
@@ -57,6 +59,7 @@ router.post("/register", async (req, res, next) => {
           surname: newUser.surname,
           email: newUser.email,
           phoneNumber: newUser.phoneNumber,
+          role: newUser.role,
         },
       });
   } catch (error) {
@@ -64,7 +67,6 @@ router.post("/register", async (req, res, next) => {
     return next(ApiError.internal("Sunucu hatası."));
   }
 });
-
 
 // Kullanıcı Girişi (Login)
 router.post("/login", async (req, res) => {
@@ -90,16 +92,20 @@ router.post("/login", async (req, res) => {
     }
 
     const userJson = user.toJSON();
-    const token = jwt.sign(userJson, process.env.JWT_SECRET, {
-      expiresIn: "1h",
-    });
+    const token = jwt.sign(
+      { _id: userJson._id, email: userJson.email, role: userJson.role },
+      process.env.JWT_SECRET,
+      { expiresIn: "1h" }
+    );
+
+    const isProd = process.env.NODE_ENV === "production";
 
     res
       .cookie("token", token, {
         httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
-        sameSite: process.env.NODE_ENV === "production" ? "strict" : "lax",
-        domain: '.tercihsepetim.com',
+        secure: isProd,
+        sameSite: isProd ? "None" : "Lax",
+        domain: isProd ? ".tercihsepetim.com" : undefined,
         path: "/",
         maxAge: 60 * 60 * 1000, // 1 saat
       })
@@ -115,6 +121,7 @@ router.post("/login", async (req, res) => {
     res.status(500).json({ error: "Sunucu hatası." });
   }
 });
+
 
 // Token doğrulaması yapacak check endpoint
 router.get("/check", async (req, res) => {
