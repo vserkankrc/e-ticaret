@@ -258,15 +258,16 @@ router.post("/checkout", authMiddleware, async (req, res) => {
   }
 });
 
-// 3D Secure Callback
-router.post(
-  "/checkout/3d/callback",
+
+
+// === 3D Secure Callback ===
+router.post("/checkout/3d/callback",
   bodyParser.urlencoded({ extended: false }),
   async (req, res) => {
-    console.log("=== CALLBACK ÇALIŞTI ===");
-    console.log("HEADERS:", req.headers);
-    console.log("BODY:", req.body);
-    console.log("QUERY:", req.query);
+    console.log("====== 3D CALLBACK ÇALIŞTI ======");
+    console.log("📩 HEADERS:", req.headers);
+    console.log("📩 BODY:", req.body);
+    console.log("📩 QUERY:", req.query);
 
     try {
       const paymentId = req.body.paymentId || req.query.paymentId;
@@ -274,31 +275,57 @@ router.post(
       const encodedData = req.body.conversationData || req.query.conversationData;
 
       if (!paymentId || !conversationId || !encodedData) {
-        console.error("❌ Eksik parametreler");
-        return res.redirect("https://www.tercihsepetim.com/payment-failed");
+        console.error("❌ Gerekli parametreler eksik:", {
+          paymentId,
+          conversationId,
+          encodedData
+        });
+        return res.redirect(`${process.env.FRONTEND_URL}/payment-failed`);
       }
 
-      const orderData = JSON.parse(Buffer.from(encodedData, "base64").toString("utf8"));
+      // conversationData decode
+      let orderData;
+      try {
+        orderData = JSON.parse(Buffer.from(encodedData, "base64").toString("utf8"));
+      } catch (err) {
+        console.error("❌ conversationData decode edilemedi:", err);
+        return res.redirect(`${process.env.FRONTEND_URL}/payment-failed`);
+      }
+
       console.log("📦 Callback ile gelen sipariş verisi:", orderData);
 
+      // Ödeme doğrulama (finalize)
       const verifyResult = await new Promise((resolve, reject) => {
         iyzipay.threedsPayment.create(
-          { locale: "tr", conversationId, paymentId, conversationData: encodedData },
+          {
+            locale: "tr",
+            conversationId,
+            paymentId,
+            conversationData: encodedData
+          },
           (err, result) => (err ? reject(err) : resolve(result))
         );
       });
 
+      console.log("💳 3D ödeme doğrulama sonucu:", verifyResult);
+
       if (verifyResult.status !== "success") {
-        console.error("❌ Ödeme doğrulama başarısız", verifyResult);
-        return res.redirect("https://www.tercihsepetim.com/payment-failed");
+        console.error("❌ 3D ödeme doğrulama başarısız:", verifyResult);
+        return res.redirect(`${process.env.FRONTEND_URL}/payment-failed`);
       }
 
+      // Kullanıcıyı bul
       const user = await User.findById(orderData.userId);
-      if (!user) return res.redirect("https://www.tercihsepetim.com/payment-failed");
+      if (!user) {
+        console.error("❌ Kullanıcı bulunamadı:", orderData.userId);
+        return res.redirect(`${process.env.FRONTEND_URL}/payment-failed`);
+      }
 
-      // Stokları güncelle
+      // Stok güncelle
       for (const item of orderData.products) {
-        await Products.findByIdAndUpdate(item.productId, { $inc: { quantity: -item.quantity } });
+        await Products.findByIdAndUpdate(item.productId, {
+          $inc: { quantity: -item.quantity }
+        });
       }
 
       // Siparişi kaydet
@@ -325,13 +352,15 @@ router.post(
 
       console.log("✅ Sipariş kaydedildi:", savedOrder._id);
 
-      return res.redirect("https://www.tercihsepetim.com/payment-success");
+      // Başarılı yönlendirme
+      return res.redirect(`${process.env.FRONTEND_URL}/payment-success`);
     } catch (err) {
-      console.error("❌ Callback hata:", err);
-      return res.redirect("https://www.tercihsepetim.com/payment-failed");
+      console.error("❌ 3D callback işlem hatası:", err);
+      return res.redirect(`${process.env.FRONTEND_URL}/payment-failed`);
     }
   }
 );
+
 
 // === 3D Secure Payment Initialization ===
 router.post("/checkout/3d/initialize", authMiddleware, async (req, res) => {
