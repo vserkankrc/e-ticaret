@@ -6,7 +6,7 @@ import jwt from "jsonwebtoken";
 
 
 const router = express.Router();
-
+const isProd = process.env.NODE_ENV === "production"; // burayı importlardan sonra yaz
 // Kullanıcı Oluşturma (Register)
 router.post("/register", async (req, res, next) => {
   try {
@@ -39,14 +39,12 @@ router.post("/register", async (req, res, next) => {
       { expiresIn: "1h" }
     );
 
-    const isProd = process.env.NODE_ENV === "production";
-
     res
       .cookie("token", token, {
         httpOnly: true,
-        secure: isProd,
-        sameSite: isProd ? "None" : "Lax",
-        domain: isProd ? ".tercihsepetim.com" : undefined,
+        secure: isProd,                  // prod için https
+        sameSite: isProd ? "None" : "Lax", // cross-site destek
+        domain: isProd ? ".tercihsepetim.com" : undefined, // localhost için domain yok
         path: "/",
         maxAge: 1000 * 60 * 60 * 24 * 7, // 7 gün
       })
@@ -75,30 +73,19 @@ router.post("/login", async (req, res) => {
 
     const user = await Users.findOne({ email });
     if (!user) {
-      throw new ApiError(
-        "E-mail veya şifre hatalı",
-        401,
-        "E-mail veya şifre hatalı"
-      );
+      return res.status(401).json({ message: "E-mail veya şifre hatalı" });
     }
 
     const isValidPassword = await bcrypt.compare(password, user.password);
     if (!isValidPassword) {
-      throw new ApiError(
-        "E-mail veya şifre hatalı",
-        401,
-        "E-mail veya şifre hatalı"
-      );
+      return res.status(401).json({ message: "E-mail veya şifre hatalı" });
     }
 
-    const userJson = user.toJSON();
     const token = jwt.sign(
-      { _id: userJson._id, email: userJson.email, role: userJson.role },
+      { _id: user._id, email: user.email, role: user.role },
       process.env.JWT_SECRET,
       { expiresIn: "1h" }
     );
-
-    const isProd = process.env.NODE_ENV === "production";
 
     res
       .cookie("token", token, {
@@ -107,17 +94,14 @@ router.post("/login", async (req, res) => {
         sameSite: isProd ? "None" : "Lax",
         domain: isProd ? ".tercihsepetim.com" : undefined,
         path: "/",
-        maxAge: 60 * 60 * 1000, // 1 saat
+        maxAge: 1000 * 60 * 60, // 1 saat
       })
       .status(200)
       .json({
-        user: { _id: userJson._id, email: userJson.email, role: userJson.role },
+        user: { _id: user._id, email: user.email, role: user.role },
       });
   } catch (error) {
-    console.log(error);
-    if (error instanceof ApiError) {
-      return res.status(error.statusCode).json({ message: error.message });
-    }
+    console.error(error);
     res.status(500).json({ error: "Sunucu hatası." });
   }
 });
