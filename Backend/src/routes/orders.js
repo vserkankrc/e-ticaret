@@ -272,27 +272,24 @@ router.post("/checkout/3d/callback",
     try {
       const paymentId = req.body.paymentId || req.query.paymentId;
       const conversationId = req.body.conversationId || req.query.conversationId;
-      const encodedData = req.body.conversationData || req.query.conversationData;
+      const encodedData = req.body.conversationData || req.query.conversationData || null;
 
-      if (!paymentId || !conversationId || !encodedData) {
-        console.error("❌ Gerekli parametreler eksik:", {
-          paymentId,
-          conversationId,
-          encodedData
-        });
+      if (!paymentId || !conversationId) {
+        console.error("❌ Eksik parametreler:", { paymentId, conversationId });
         return res.redirect(`${process.env.FRONTEND_URL}/payment-failed`);
       }
 
-      // conversationData decode
-      let orderData;
-      try {
-        orderData = JSON.parse(Buffer.from(encodedData, "base64").toString("utf8"));
-      } catch (err) {
-        console.error("❌ conversationData decode edilemedi:", err);
-        return res.redirect(`${process.env.FRONTEND_URL}/payment-failed`);
+      // Sipariş verisi (conversationData varsa decode et)
+      let orderData = null;
+      if (encodedData) {
+        try {
+          orderData = JSON.parse(
+            Buffer.from(encodedData, "base64").toString("utf8")
+          );
+        } catch (err) {
+          console.warn("⚠️ conversationData decode edilemedi:", err);
+        }
       }
-
-      console.log("📦 Callback ile gelen sipariş verisi:", orderData);
 
       // Ödeme doğrulama (finalize)
       const verifyResult = await new Promise((resolve, reject) => {
@@ -301,7 +298,7 @@ router.post("/checkout/3d/callback",
             locale: "tr",
             conversationId,
             paymentId,
-            conversationData: encodedData
+            ...(encodedData ? { conversationData: encodedData } : {})
           },
           (err, result) => (err ? reject(err) : resolve(result))
         );
@@ -311,6 +308,12 @@ router.post("/checkout/3d/callback",
 
       if (verifyResult.status !== "success") {
         console.error("❌ 3D ödeme doğrulama başarısız:", verifyResult);
+        return res.redirect(`${process.env.FRONTEND_URL}/payment-failed`);
+      }
+
+      // Eğer orderData yoksa, paymentId ile sipariş bilgisi al
+      if (!orderData) {
+        console.error("⚠️ orderData bulunamadı. Bu durumda sipariş oluşturulamıyor.");
         return res.redirect(`${process.env.FRONTEND_URL}/payment-failed`);
       }
 
@@ -338,9 +341,11 @@ router.post("/checkout/3d/callback",
           image: item.image || "",
           color: item.color || null,
           size: item.size || null,
-          paymentTransactionId: verifyResult.itemTransactions?.[i]?.paymentTransactionId || "",
+          paymentTransactionId:
+            verifyResult.itemTransactions?.[i]?.paymentTransactionId || "",
         })),
-        paymentTransactionId: verifyResult.itemTransactions?.[0]?.paymentTransactionId || "",
+        paymentTransactionId:
+          verifyResult.itemTransactions?.[0]?.paymentTransactionId || "",
         totalAmount: orderData.totalAmount,
         trackingNumber: orderData.trackingNumber,
         address: orderData.address,
@@ -352,14 +357,15 @@ router.post("/checkout/3d/callback",
 
       console.log("✅ Sipariş kaydedildi:", savedOrder._id);
 
-      // Başarılı yönlendirme
-      return res.redirect(`${process.env.FRONTEND_URL}/payment-success`);
+      // Başarılı yönlendirme → profilim sayfası
+      return res.redirect(`${process.env.FRONTEND_URL}/profile`);
     } catch (err) {
       console.error("❌ 3D callback işlem hatası:", err);
       return res.redirect(`${process.env.FRONTEND_URL}/payment-failed`);
     }
   }
 );
+
 
 
 // === 3D Secure Payment Initialization ===
