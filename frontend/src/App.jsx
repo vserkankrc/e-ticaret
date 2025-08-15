@@ -26,6 +26,7 @@ import CanceledOrders from "./pages/Admin/Orders/CanceledOrders.jsx";
 import PageList from "./pages/Admin/Pages/PagesList.jsx";
 import CreatePage from "./pages/Admin/Pages/CreatePage";
 import UpdatePage from "./pages/Admin/Pages/UpdatePage";
+
 import "./App.css";
 
 function App() {
@@ -57,7 +58,7 @@ function App() {
         <Route path="/profile/*" element={<ProfilePages />} />
 
         {/* Admin Paneli */}
-        
+       
         <Route path="/admin/users" element={<UserPage />} />
         <Route path="/admin/categories" element={<CategoryPage />} />
         <Route path="/admin/categories/update/:id" element={<UpdateCategoryPage />} />
@@ -71,8 +72,8 @@ function App() {
         <Route path="/admin/pages" element={<PageList />} />
         <Route path="/admin/pages/create" element={<CreatePage />} />
         <Route path="/admin/pages/update/:id" element={<UpdatePage />} />
+      
       </Routes>
-
       <CookieConsent />
     </>
   );
