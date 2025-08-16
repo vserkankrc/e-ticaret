@@ -82,7 +82,7 @@ passport.use(
 
 app.use(passport.initialize());
 
-// Routes
+// --- API ROUTES ---
 app.use("/api", mainRoute);
 mainRoute.get("/", (req, res) => res.send("API Root"));
 
@@ -90,6 +90,26 @@ mainRoute.get("/", (req, res) => res.send("API Root"));
 app.all("/test-auth", Session, (req, res) => {
   res.send("JWT ile doğrulama başarılı");
 });
+
+// --- FRONTEND SERVE (SADECE PROD İÇİN) ---
+if (process.env.NODE_ENV === "production") {
+  // Kullanıcı frontend (client/build)
+  const clientPath = path.join(__dirname, "client/build");
+  app.use(express.static(clientPath));
+  app.get("/", (req, res) => {
+    res.sendFile(path.join(clientPath, "index.html"));
+  });
+  app.get("/shop/*", (req, res) => {
+    res.sendFile(path.join(clientPath, "index.html"));
+  });
+
+  // Admin frontend (admin-client/build)
+  const adminPath = path.join(__dirname, "admin-client/build");
+  app.use("/admin", express.static(adminPath));
+  app.get("/admin/*", (req, res) => {
+    res.sendFile(path.join(adminPath, "index.html"));
+  });
+}
 
 // Hata handler
 app.use(GenericErrorHandler);
@@ -109,7 +129,6 @@ if (process.env.HTTPS_ENABLED === "true") {
     .createServer({ key, cert }, app)
     .listen(PORT, HOST, () => {
       console.log(`🔐 HTTPS sunucu çalışıyor → https://${HOST}:${PORT}`);
-      
     });
 } else {
   app.listen(PORT, HOST, () => {
