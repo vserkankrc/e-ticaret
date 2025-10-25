@@ -27,7 +27,7 @@ const AdminLayout = ({ children }) => {
 
     if (!isAuthenticated || !user || user.role !== "admin") {
       console.log("[AdminLayout] Yetkisiz erişim, yönlendiriliyor...");
-      navigate("/404");
+      navigate("/admin/login");
     } else {
       setAuthorized(true);
     }

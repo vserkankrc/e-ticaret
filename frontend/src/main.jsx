@@ -4,7 +4,7 @@ import { createRoot } from "react-dom/client";
 import { BrowserRouter } from "react-router-dom";
 import { AuthProvider } from "./context/AuthContext.jsx";
 import { CartProvider } from "./context/CartProvider.jsx";
-import { Layout } from "./layouts/Layout";
+import  {Layout}  from "./layouts/Layout";
 import App from "./App";
 import "./index.css";
 import { LoadingProvider } from "./context/LoadingProvider.jsx";

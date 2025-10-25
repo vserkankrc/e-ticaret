@@ -22,6 +22,8 @@ var _nanoid = _interopRequireDefault(require("../utils/nanoid.js"));
 var _logs = _interopRequireDefault(require("../utils/logs.js"));
 var _Users = _interopRequireDefault(require("../models/Users.js"));
 var _sendSms = require("../utils/sendSms.js");
+var _iyzipay = _interopRequireDefault(require("../services/iyzico/connection/iyzipay.js"));
+var _bodyParser = _interopRequireDefault(require("body-parser"));
 function _interopRequireDefault(e) { return e && e.__esModule ? e : { default: e }; }
 // <-- Burayı ekle
 
@@ -33,7 +35,13 @@ const router = _express.default.Router();
 // === Ödeme ve Sipariş Oluşturma ===
 router.post("/checkout", _auth.default, async (req, res) => {
   try {
-    const user = req.user;
+    // 🔥 Kullanıcıyı veritabanından çekiyoruz
+    const user = await _Users.default.findById(req.user._id);
+    if (!user) {
+      return res.status(404).json({
+        message: "Kullanıcı bulunamadı."
+      });
+    }
     const {
       products,
       totalAmount,
@@ -77,6 +85,8 @@ router.post("/checkout", _auth.default, async (req, res) => {
         registerCard
       };
     }
+
+    // 🔥 Kullanıcı bilgilerini buyer, shipping ve billing adreslerine ekliyoruz
     const paymentData = {
       locale: "tr",
       conversationId,
@@ -90,13 +100,14 @@ router.post("/checkout", _auth.default, async (req, res) => {
       paymentCard,
       buyer: {
         id: user._id.toString(),
+        buyerName: `${user.name} ${user.surname}`,
         name: user.name,
         surname: user.surname,
         gsmNumber: user.phone,
         email: user.email,
         identityNumber: user.identityNumber || "11111111111",
         registrationAddress: address.addressDetail,
-        ip: req.ip || "85.34.78.112",
+        ip: req.ip || req.headers["x-forwarded-for"] || "85.34.78.112",
         city: address.province,
         country: address.country || "Türkiye"
       },
@@ -120,9 +131,12 @@ router.post("/checkout", _auth.default, async (req, res) => {
         price: (item.price * item.quantity).toString()
       }))
     };
+    console.log("📦 Buyer kontrol:", paymentData.buyer);
+
+    // 💳 Ödeme isteği
     const result = await (0, _createPayment.default)(paymentData);
     if (result.status?.toLowerCase() === "success") {
-      // Yeni kartla ödeme yapıldıysa ve kart kaydedilecekse
+      // ✅ Kart kaydetme
       if (saveCard && !card.savedCardId && result.cardToken && result.cardUserKey) {
         await _SavedCard.default.create({
           userId: user._id,
@@ -136,7 +150,7 @@ router.post("/checkout", _auth.default, async (req, res) => {
         });
       }
 
-      // Ödeme başarılı oldu, stokları güncelle
+      // ✅ Stok güncelle
       for (const item of products) {
         await _Products.default.findByIdAndUpdate(item.productId, {
           $inc: {
@@ -146,7 +160,7 @@ router.post("/checkout", _auth.default, async (req, res) => {
       }
       const paymentTransactionId = result.itemTransactions && result.itemTransactions.length > 0 ? result.itemTransactions[0].paymentTransactionId : "";
 
-      // Siparişi kaydet – color ve size eklendi
+      // ✅ Sipariş kaydı
       const savedOrder = await new _Order.default({
         userId: user._id,
         products: products.map((item, i) => ({
@@ -174,7 +188,7 @@ router.post("/checkout", _auth.default, async (req, res) => {
         paymentId: result.paymentId || ""
       }).save();
 
-      // Ödeme başarılı log kaydı
+      // ✅ Başarılı ödeme log
       await new _PaymentSucces.default({
         status: "success",
         conversationId,
@@ -198,19 +212,19 @@ router.post("/checkout", _auth.default, async (req, res) => {
         }
       }).save();
 
-      // Başarı e-postası gönder
+      // ✅ E-posta gönder
       await (0, _paySendEmail.sendPaymentSuccessEmail)({
         userName: user.name,
         userEmail: user.email,
         items: products.map(p => ({
-          title: p.name,
+          title: p.name || "Ürün",
           quantity: p.quantity
         })),
         totalPrice: totalAmount,
         currency: "TL"
       });
 
-      // SMS gönderimi
+      // ✅ SMS gönder
       await (0, _sendSms.sendSms)({
         to: process.env.ADMIN_PHONE_NUMBER,
         message: `📦 Yeni sipariş alındı!\n👤 Müşteri: ${user.name}\n💰 Tutar: ₺${totalAmount}\n🛒 Ürün adedi: ${products.length}`
@@ -238,6 +252,250 @@ router.post("/checkout", _auth.default, async (req, res) => {
     }).save();
     return res.status(500).json({
       message: "Ödeme başarısız.",
+      error: error.message
+    });
+  }
+});
+
+// === 3D Secure Callback ===
+router.post("/checkout/3d/callback", _bodyParser.default.urlencoded({
+  extended: false
+}), async (req, res) => {
+  console.log("====== 3D CALLBACK ÇALIŞTI ======");
+  console.log("📩 HEADERS:", req.headers);
+  console.log("📩 BODY:", req.body);
+  console.log("📩 QUERY:", req.query);
+  try {
+    const paymentId = req.body.paymentId || req.query.paymentId;
+    const conversationId = req.body.conversationId || req.query.conversationId;
+    const encodedData = req.body.conversationData || req.query.conversationData || null;
+    if (!paymentId || !conversationId) {
+      console.error("❌ Eksik parametreler:", {
+        paymentId,
+        conversationId
+      });
+      return res.redirect(`${process.env.FRONTEND_URL}/payment-failed`);
+    }
+
+    // Sipariş verisi (conversationData varsa decode et)
+    let orderData = null;
+    if (encodedData) {
+      try {
+        orderData = JSON.parse(Buffer.from(encodedData, "base64").toString("utf8"));
+      } catch (err) {
+        console.warn("⚠️ conversationData decode edilemedi:", err);
+      }
+    }
+
+    // Ödeme doğrulama (finalize)
+    const verifyResult = await new Promise((resolve, reject) => {
+      _iyzipay.default.threedsPayment.create({
+        locale: "tr",
+        conversationId,
+        paymentId,
+        ...(encodedData ? {
+          conversationData: encodedData
+        } : {})
+      }, (err, result) => err ? reject(err) : resolve(result));
+    });
+    console.log("💳 3D ödeme doğrulama sonucu:", verifyResult);
+    if (verifyResult.status !== "success") {
+      console.error("❌ 3D ödeme doğrulama başarısız:", verifyResult);
+      return res.redirect(`${process.env.FRONTEND_URL}/payment-failed`);
+    }
+
+    // Eğer orderData yoksa, paymentId ile sipariş bilgisi al
+    if (!orderData) {
+      console.error("⚠️ orderData bulunamadı. Bu durumda sipariş oluşturulamıyor.");
+      return res.redirect(`${process.env.FRONTEND_URL}/payment-failed`);
+    }
+
+    // Kullanıcıyı bul
+    const user = await User.findById(orderData.userId);
+    if (!user) {
+      console.error("❌ Kullanıcı bulunamadı:", orderData.userId);
+      return res.redirect(`${process.env.FRONTEND_URL}/payment-failed`);
+    }
+
+    // Stok güncelle
+    for (const item of orderData.products) {
+      await _Products.default.findByIdAndUpdate(item.productId, {
+        $inc: {
+          quantity: -item.quantity
+        }
+      });
+    }
+
+    // Siparişi kaydet
+    const savedOrder = await new _Order.default({
+      userId: user._id,
+      products: orderData.products.map((item, i) => ({
+        productId: item.productId,
+        quantity: item.quantity,
+        price: item.price,
+        image: item.image || "",
+        color: item.color || null,
+        size: item.size || null,
+        paymentTransactionId: verifyResult.itemTransactions?.[i]?.paymentTransactionId || ""
+      })),
+      paymentTransactionId: verifyResult.itemTransactions?.[0]?.paymentTransactionId || "",
+      totalAmount: orderData.totalAmount,
+      trackingNumber: orderData.trackingNumber,
+      address: orderData.address,
+      paymentMethod: orderData.paymentMethod,
+      agreementAccepted: orderData.agreementAccepted,
+      paymentStatus: "completed",
+      paymentId: verifyResult.paymentId || ""
+    }).save();
+    console.log("✅ Sipariş kaydedildi:", savedOrder._id);
+
+    // Başarılı yönlendirme → profilim sayfası
+    return res.redirect(`${process.env.FRONTEND_URL}/profile`);
+  } catch (err) {
+    console.error("❌ 3D callback işlem hatası:", err);
+    return res.redirect(`${process.env.FRONTEND_URL}/payment-failed`);
+  }
+});
+
+// === 3D Secure Payment Initialization (Kayıtlı Kart Destekli) ===
+router.post("/checkout/3d/initialize", _auth.default, async (req, res) => {
+  try {
+    // 🔥 Token ile gelen kullanıcıyı DB'den çekiyoruz
+    const user = await _Users.default.findById(req.user._id);
+    if (!user) return res.status(404).json({
+      message: "Kullanıcı bulunamadı."
+    });
+    const {
+      products,
+      totalAmount,
+      address,
+      card,
+      saveCard,
+      agreementAccepted
+    } = req.body;
+    if (!agreementAccepted) return res.status(400).json({
+      message: "Sözleşme kabul edilmedi."
+    });
+    if (!products?.length) return res.status(400).json({
+      message: "Ürün bilgileri eksik."
+    });
+    if (!address) return res.status(400).json({
+      message: "Adres bilgisi eksik."
+    });
+    if (!card || !card.savedCardId && (!card.cardHolderName || !card.cardNumber || !card.expireMonth || !card.expireYear || !card.cvc)) return res.status(400).json({
+      message: "Kart bilgileri eksik."
+    });
+    const conversationId = (0, _nanoid.default)();
+    const basketId = (0, _nanoid.default)();
+
+    // 🔹 Kayıtlı kart varsa MongoDB'den çek
+    let paymentCard;
+    if (card.savedCardId) {
+      const savedCard = await _SavedCard.default.findById(card.savedCardId);
+      if (!savedCard) return res.status(400).json({
+        message: "Kayıtlı kart bulunamadı."
+      });
+      paymentCard = {
+        cardUserKey: savedCard.cardUserKey,
+        cardToken: savedCard.cardToken,
+        registerCard: "0"
+      };
+    } else {
+      paymentCard = {
+        cardHolderName: card.cardHolderName,
+        cardNumber: card.cardNumber,
+        expireMonth: card.expireMonth,
+        expireYear: card.expireYear,
+        cvc: card.cvc,
+        registerCard: saveCard ? "1" : "0"
+      };
+    }
+
+    // 🔹 Sipariş verilerini encode et
+    const conversationData = Buffer.from(JSON.stringify({
+      userId: user._id.toString(),
+      products,
+      totalAmount,
+      trackingNumber: (0, _nanoid.default)(),
+      address,
+      paymentMethod: "credit_card",
+      agreementAccepted,
+      card,
+      saveCard
+    })).toString("base64");
+
+    // 🔹 Buyer bilgileri artık DB’den tam geliyor
+    const paymentData = {
+      locale: "tr",
+      conversationId,
+      price: totalAmount.toString(),
+      paidPrice: totalAmount.toString(),
+      currency: "TRY",
+      installment: "1",
+      basketId,
+      paymentChannel: "WEB",
+      paymentGroup: "PRODUCT",
+      callbackUrl: "https://www.tercihsepetim.com/api/orders/checkout/3d/callback",
+      conversationData,
+      paymentCard,
+      buyer: {
+        id: user._id.toString(),
+        name: user.name,
+        surname: user.surname,
+        gsmNumber: user.phone,
+        email: user.email,
+        identityNumber: user.identityNumber || "11111111111",
+        registrationAddress: address.addressDetail,
+        ip: req.ip || req.headers["x-forwarded-for"] || "127.0.0.1",
+        city: address.province,
+        country: address.country || "Türkiye"
+      },
+      shippingAddress: {
+        contactName: `${user.name} ${user.surname}`,
+        city: address.province,
+        country: address.country || "Türkiye",
+        address: address.addressDetail
+      },
+      billingAddress: {
+        contactName: `${user.name} ${user.surname}`,
+        city: address.province,
+        country: address.country || "Türkiye",
+        address: address.addressDetail
+      },
+      basketItems: products.map(item => ({
+        id: item.productId || (0, _nanoid.default)(),
+        name: item.name || "Ürün",
+        category1: item.category || "Genel",
+        itemType: "PHYSICAL",
+        price: (item.price * item.quantity).toString()
+      }))
+    };
+    console.log("📦 Buyer kontrol:", paymentData.buyer);
+    _iyzipay.default.threedsInitialize.create(paymentData, (err, result) => {
+      if (err || result.status !== "success") {
+        console.error("❌ 3D initialize failed:", err || result);
+        return res.status(400).json({
+          message: "3D Secure başlatılamadı",
+          error: err?.message || result.errorMessage
+        });
+      }
+
+      // ✅ TEST AMAÇLI: Base64 HTML içeriğini terminale yazdır
+      console.log("🧾 3D HTML İçeriği (base64):");
+      console.log(result.threeDSHtmlContent);
+
+      // Ayrıca redirect URL varsa onu da görmek faydalı olur
+      console.log("🌐 Redirect URL:", result.redirectUrl);
+      return res.status(200).json({
+        status: "success",
+        redirectUrl: result.redirectUrl || null,
+        threeDSHtmlContent: result.threeDSHtmlContent || null
+      });
+    });
+  } catch (error) {
+    console.error("❌ 3D initialize hatası:", error);
+    res.status(500).json({
+      message: "Sunucu hatası",
       error: error.message
     });
   }
@@ -569,15 +827,14 @@ router.post("/cancel-request/:orderId", _auth.default, async (req, res) => {
   }
 });
 
-//Admin tarafından sipariş iptali
+// Admin tarafından sipariş iptali
 router.post("/cancel-approve/:orderId", _adminMiddleware.default, async (req, res) => {
   let order = null;
   try {
     const {
       orderId
     } = req.params;
-    order = await _Order.default.findById(orderId).populate("userId"); // user bilgisini alalım
-
+    order = await _Order.default.findById(orderId).populate("userId");
     _logs.default.info(`[cancel-approve] Sipariş verisi getirildi: ${orderId}`);
     if (!order) {
       _logs.default.warn(`[cancel-approve] Sipariş bulunamadı: ${orderId}`);
@@ -606,6 +863,22 @@ router.post("/cancel-approve/:orderId", _adminMiddleware.default, async (req, re
       ip: req.ip || "85.34.78.112"
     });
     _logs.default.info(`[cancel-approve] İyzico iade cevabı: ${JSON.stringify(refundResult)}`);
+
+    // 🔴 Yetersiz bakiye durumu özel olarak ele alınıyor
+    if (refundResult.status === "failure" && refundResult.errorCode === "5117") {
+      _logs.default.error(`[cancel-approve] İyzico bakiyesi yetersiz - Sipariş: ${orderId}`);
+      await _PaymentSucces.default.findOneAndUpdate({
+        paymentId: transactionId
+      }, {
+        refundStatus: "failed",
+        refundResponseLog: refundResult
+      });
+      return res.status(400).json({
+        message: "İade işlemi başarısız. İyzico cüzdan bakiyesi yetersiz.",
+        iyzicoMessage: refundResult.errorMessage,
+        retryable: refundResult.retryable || false
+      });
+    }
     if (refundResult.status === "success") {
       _logs.default.info(`[cancel-approve] İade başarılı, veritabanı güncelleniyor: ${orderId}`);
       await _PaymentSucces.default.findOneAndUpdate({

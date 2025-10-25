@@ -11,7 +11,7 @@ var _ApiError = _interopRequireDefault(require("../error/ApiError.js"));
 var _jsonwebtoken = _interopRequireDefault(require("jsonwebtoken"));
 function _interopRequireDefault(e) { return e && e.__esModule ? e : { default: e }; }
 const router = _express.default.Router();
-
+const isProd = process.env.NODE_ENV === "production"; // burayı importlardan sonra yaz
 // Kullanıcı Oluşturma (Register)
 router.post("/register", async (req, res, next) => {
   try {
@@ -42,15 +42,21 @@ router.post("/register", async (req, res, next) => {
     await newUser.save();
     const token = _jsonwebtoken.default.sign({
       _id: newUser._id,
-      email: newUser.email
+      email: newUser.email,
+      role: newUser.role
     }, process.env.JWT_SECRET, {
       expiresIn: "1h"
     });
     res.cookie("token", token, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: process.env.NODE_ENV === "production" ? "None" : "Lax",
-      maxAge: 60 * 60 * 1000 // 1 saat
+      secure: isProd,
+      // prod için https
+      sameSite: isProd ? "None" : "Lax",
+      // cross-site destek
+      domain: isProd ? ".tercihsepetim.com" : undefined,
+      // localhost için domain yok
+      path: "/",
+      maxAge: 1000 * 60 * 60 * 24 * 7 // 7 gün
     }).status(201).json({
       token: `Bearer ${token}`,
       user: {
@@ -58,7 +64,8 @@ router.post("/register", async (req, res, next) => {
         name: newUser.name,
         surname: newUser.surname,
         email: newUser.email,
-        phoneNumber: newUser.phoneNumber
+        phoneNumber: newUser.phoneNumber,
+        role: newUser.role
       }
     });
   } catch (error) {
@@ -78,35 +85,39 @@ router.post("/login", async (req, res) => {
       email
     });
     if (!user) {
-      throw new _ApiError.default("E-mail veya şifre hatalı", 401, "E-mail veya şifre hatalı");
+      return res.status(401).json({
+        message: "E-mail veya şifre hatalı"
+      });
     }
     const isValidPassword = await _bcryptjs.default.compare(password, user.password);
     if (!isValidPassword) {
-      throw new _ApiError.default("E-mail veya şifre hatalı", 401, "E-mail veya şifre hatalı");
+      return res.status(401).json({
+        message: "E-mail veya şifre hatalı"
+      });
     }
-    const userJson = user.toJSON();
-    const token = _jsonwebtoken.default.sign(userJson, process.env.JWT_SECRET, {
+    const token = _jsonwebtoken.default.sign({
+      _id: user._id,
+      email: user.email,
+      role: user.role
+    }, process.env.JWT_SECRET, {
       expiresIn: "1h"
     });
     res.cookie("token", token, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: process.env.NODE_ENV === "production" ? "None" : "Lax",
-      path: "/"
+      secure: isProd,
+      sameSite: isProd ? "None" : "Lax",
+      domain: isProd ? ".tercihsepetim.com" : undefined,
+      path: "/",
+      maxAge: 1000 * 60 * 60 // 1 saat
     }).status(200).json({
       user: {
-        _id: userJson._id,
-        email: userJson.email,
-        role: userJson.role
+        _id: user._id,
+        email: user.email,
+        role: user.role
       }
     });
   } catch (error) {
-    console.log(error);
-    if (error instanceof _ApiError.default) {
-      return res.status(error.statusCode).json({
-        message: error.message
-      });
-    }
+    console.error(error);
     res.status(500).json({
       error: "Sunucu hatası."
     });
@@ -157,7 +168,9 @@ router.post("/logout", (req, res) => {
   res.clearCookie("token", {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
-    sameSite: process.env.NODE_ENV === "production" ? "None" : "Lax"
+    sameSite: process.env.NODE_ENV === "production" ? "strict" : "lax",
+    domain: '.tercihsepetim.com',
+    path: "/"
   });
   res.status(200).json({
     message: "Çıkış başarılı."
@@ -233,8 +246,10 @@ router.post("/google", async (req, res, next) => {
     res.cookie("token", token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
-      sameSite: process.env.NODE_ENV === "production" ? "None" : "Lax",
-      maxAge: 60 * 60 * 1000
+      sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+      domain: "tercihsepetim.com",
+      maxAge: 1000 * 60 * 60 * 24 * 7,
+      path: "/"
     }).status(200).json({
       token: `Bearer ${token}`,
       user: {

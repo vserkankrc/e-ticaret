@@ -13,6 +13,7 @@ import reviewsRoute from "./reviews.js";
 import pagesRoute from "./pages.js";  // yeni eklenen satır
 import productQuestionsRoute from "./productQuestions.js";
 
+
 const router = express.Router();
 
 router.use("/categories", categoryRoute);

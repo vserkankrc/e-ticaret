@@ -3,6 +3,7 @@ import jwt from 'jsonwebtoken';
 import Users from "../models/Users.js";
 import ApiError from '../error/ApiError.js';
 import sendEmail from '../services/Email/passwordResetEmail.js';
+import bcrypt from "bcryptjs";
 
 const router = express.Router();
 
@@ -38,5 +39,41 @@ router.post('/password', async (req, res, next) => {
         next(ApiError.InternalServerError());
     }
 });
+
+
+/**
+ * 🔑 Yeni şifre kaydetme işlemi — Kullanıcı formdan yeni şifre gönderir
+ */
+router.post("/reset-password", async (req, res, next) => {
+  const { token, password } = req.body;
+
+  try {
+    // Token geçerli mi kontrol et
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+
+    const user = await Users.findOne({
+      _id: decoded.id,
+      resetToken: token,
+      resetTokenExpiration: { $gt: Date.now() },
+    });
+
+    if (!user)
+      return next(ApiError.BadRequest("Token geçersiz veya süresi dolmuş"));
+
+    // Şifreyi hashle
+    user.password = await bcrypt.hash(password, 10);
+
+    // Token'ı temizle
+    user.resetToken = undefined;
+    user.resetTokenExpiration = undefined;
+    await user.save();
+
+    res.status(200).json({ message: "Şifre başarıyla sıfırlandı" });
+  } catch (error) {
+    console.error("Şifre sıfırlama işlemi hatası:", error);
+    next(ApiError.InternalServerError("Şifre sıfırlama başarısız oldu"));
+  }
+});
+
 
 export default router;

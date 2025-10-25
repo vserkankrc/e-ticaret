@@ -1,3 +1,4 @@
+/* eslint-disable react/prop-types */
 import { useEffect, useState } from "react";
 import { Radio, Tooltip } from "antd";
 import { DeleteOutlined } from "@ant-design/icons";

@@ -24,7 +24,12 @@ const router = express.Router();
 // === Ödeme ve Sipariş Oluşturma ===
 router.post("/checkout", authMiddleware, async (req, res) => {
   try {
-    const user = req.user;
+    // 🔥 Kullanıcıyı veritabanından çekiyoruz
+    const user = await Users.findById(req.user._id);
+    if (!user) {
+      return res.status(404).json({ message: "Kullanıcı bulunamadı." });
+    }
+
     const {
       products,
       totalAmount,
@@ -78,6 +83,7 @@ router.post("/checkout", authMiddleware, async (req, res) => {
       };
     }
 
+    // 🔥 Kullanıcı bilgilerini buyer, shipping ve billing adreslerine ekliyoruz
     const paymentData = {
       locale: "tr",
       conversationId,
@@ -91,13 +97,14 @@ router.post("/checkout", authMiddleware, async (req, res) => {
       paymentCard,
       buyer: {
         id: user._id.toString(),
+        buyerName: `${user.name} ${user.surname}`,
         name: user.name,
         surname: user.surname,
         gsmNumber: user.phone,
         email: user.email,
         identityNumber: user.identityNumber || "11111111111",
         registrationAddress: address.addressDetail,
-        ip: req.ip || "85.34.78.112",
+        ip: req.ip || req.headers["x-forwarded-for"] || "85.34.78.112",
         city: address.province,
         country: address.country || "Türkiye",
       },
@@ -124,10 +131,13 @@ router.post("/checkout", authMiddleware, async (req, res) => {
       })),
     };
 
+    console.log("📦 Buyer kontrol:", paymentData.buyer);
+
+    // 💳 Ödeme isteği
     const result = await createPayment(paymentData);
 
     if (result.status?.toLowerCase() === "success") {
-      // Yeni kartla ödeme yapıldıysa ve kart kaydedilecekse
+      // ✅ Kart kaydetme
       if (
         saveCard &&
         !card.savedCardId &&
@@ -146,7 +156,7 @@ router.post("/checkout", authMiddleware, async (req, res) => {
         });
       }
 
-      // Ödeme başarılı oldu, stokları güncelle
+      // ✅ Stok güncelle
       for (const item of products) {
         await Products.findByIdAndUpdate(item.productId, {
           $inc: { quantity: -item.quantity },
@@ -158,7 +168,7 @@ router.post("/checkout", authMiddleware, async (req, res) => {
           ? result.itemTransactions[0].paymentTransactionId
           : "";
 
-      // Siparişi kaydet – color ve size eklendi
+      // ✅ Sipariş kaydı
       const savedOrder = await new Order({
         userId: user._id,
         products: products.map((item, i) => ({
@@ -187,7 +197,7 @@ router.post("/checkout", authMiddleware, async (req, res) => {
         paymentId: result.paymentId || "",
       }).save();
 
-      // Ödeme başarılı log kaydı
+      // ✅ Başarılı ödeme log
       await new PaymentSuccess({
         status: "success",
         conversationId,
@@ -211,19 +221,19 @@ router.post("/checkout", authMiddleware, async (req, res) => {
         },
       }).save();
 
-      // Başarı e-postası gönder
+      // ✅ E-posta gönder
       await sendPaymentSuccessEmail({
         userName: user.name,
         userEmail: user.email,
         items: products.map((p) => ({
-          title: p.name,
+          title: p.name || "Ürün",
           quantity: p.quantity,
         })),
         totalPrice: totalAmount,
         currency: "TL",
       });
 
-      // SMS gönderimi
+      // ✅ SMS gönder
       await sendSms({
         to: process.env.ADMIN_PHONE_NUMBER,
         message: `📦 Yeni sipariş alındı!\n👤 Müşteri: ${user.name}\n💰 Tutar: ₺${totalAmount}\n🛒 Ürün adedi: ${products.length}`,
@@ -258,10 +268,9 @@ router.post("/checkout", authMiddleware, async (req, res) => {
   }
 });
 
-
-
 // === 3D Secure Callback ===
-router.post("/checkout/3d/callback",
+router.post(
+  "/checkout/3d/callback",
   bodyParser.urlencoded({ extended: false }),
   async (req, res) => {
     console.log("====== 3D CALLBACK ÇALIŞTI ======");
@@ -271,8 +280,10 @@ router.post("/checkout/3d/callback",
 
     try {
       const paymentId = req.body.paymentId || req.query.paymentId;
-      const conversationId = req.body.conversationId || req.query.conversationId;
-      const encodedData = req.body.conversationData || req.query.conversationData || null;
+      const conversationId =
+        req.body.conversationId || req.query.conversationId;
+      const encodedData =
+        req.body.conversationData || req.query.conversationData || null;
 
       if (!paymentId || !conversationId) {
         console.error("❌ Eksik parametreler:", { paymentId, conversationId });
@@ -298,7 +309,7 @@ router.post("/checkout/3d/callback",
             locale: "tr",
             conversationId,
             paymentId,
-            ...(encodedData ? { conversationData: encodedData } : {})
+            ...(encodedData ? { conversationData: encodedData } : {}),
           },
           (err, result) => (err ? reject(err) : resolve(result))
         );
@@ -313,7 +324,9 @@ router.post("/checkout/3d/callback",
 
       // Eğer orderData yoksa, paymentId ile sipariş bilgisi al
       if (!orderData) {
-        console.error("⚠️ orderData bulunamadı. Bu durumda sipariş oluşturulamıyor.");
+        console.error(
+          "⚠️ orderData bulunamadı. Bu durumda sipariş oluşturulamıyor."
+        );
         return res.redirect(`${process.env.FRONTEND_URL}/payment-failed`);
       }
 
@@ -327,7 +340,7 @@ router.post("/checkout/3d/callback",
       // Stok güncelle
       for (const item of orderData.products) {
         await Products.findByIdAndUpdate(item.productId, {
-          $inc: { quantity: -item.quantity }
+          $inc: { quantity: -item.quantity },
         });
       }
 
@@ -366,13 +379,13 @@ router.post("/checkout/3d/callback",
   }
 );
 
-
-
-// === 3D Secure Payment Initialization ===
+// === 3D Secure Payment Initialization (Kayıtlı Kart Destekli) ===
 router.post("/checkout/3d/initialize", authMiddleware, async (req, res) => {
   try {
-    const user = req.user;
-    console.log("🧑 Kullanıcı:", user);
+    // 🔥 Token ile gelen kullanıcıyı DB'den çekiyoruz
+    const user = await Users.findById(req.user._id);
+    if (!user)
+      return res.status(404).json({ message: "Kullanıcı bulunamadı." });
 
     const {
       products,
@@ -382,9 +395,7 @@ router.post("/checkout/3d/initialize", authMiddleware, async (req, res) => {
       saveCard,
       agreementAccepted,
     } = req.body;
-    console.log("📦 Gönderilen body:", req.body);
 
-    // Validasyon
     if (!agreementAccepted)
       return res.status(400).json({ message: "Sözleşme kabul edilmedi." });
     if (!products?.length)
@@ -399,15 +410,36 @@ router.post("/checkout/3d/initialize", authMiddleware, async (req, res) => {
           !card.expireMonth ||
           !card.expireYear ||
           !card.cvc))
-    ) {
+    )
       return res.status(400).json({ message: "Kart bilgileri eksik." });
-    }
 
     const conversationId = nanoid();
     const basketId = nanoid();
-    const registerCard = saveCard ? "1" : "0";
 
-    // Sipariş verilerini encode et
+    // 🔹 Kayıtlı kart varsa MongoDB'den çek
+    let paymentCard;
+    if (card.savedCardId) {
+      const savedCard = await SavedCard.findById(card.savedCardId);
+      if (!savedCard)
+        return res.status(400).json({ message: "Kayıtlı kart bulunamadı." });
+
+      paymentCard = {
+        cardUserKey: savedCard.cardUserKey,
+        cardToken: savedCard.cardToken,
+        registerCard: "0",
+      };
+    } else {
+      paymentCard = {
+        cardHolderName: card.cardHolderName,
+        cardNumber: card.cardNumber,
+        expireMonth: card.expireMonth,
+        expireYear: card.expireYear,
+        cvc: card.cvc,
+        registerCard: saveCard ? "1" : "0",
+      };
+    }
+
+    // 🔹 Sipariş verilerini encode et
     const conversationData = Buffer.from(
       JSON.stringify({
         userId: user._id.toString(),
@@ -421,8 +453,8 @@ router.post("/checkout/3d/initialize", authMiddleware, async (req, res) => {
         saveCard,
       })
     ).toString("base64");
-    console.log("💾 Encoded conversationData:", conversationData);
 
+    // 🔹 Buyer bilgileri artık DB’den tam geliyor
     const paymentData = {
       locale: "tr",
       conversationId,
@@ -436,14 +468,7 @@ router.post("/checkout/3d/initialize", authMiddleware, async (req, res) => {
       callbackUrl:
         "https://www.tercihsepetim.com/api/orders/checkout/3d/callback",
       conversationData,
-      paymentCard: {
-        cardHolderName: card.cardHolderName,
-        cardNumber: card.cardNumber,
-        expireMonth: card.expireMonth,
-        expireYear: card.expireYear,
-        cvc: card.cvc,
-        registerCard,
-      },
+      paymentCard,
       buyer: {
         id: user._id.toString(),
         name: user.name,
@@ -452,7 +477,7 @@ router.post("/checkout/3d/initialize", authMiddleware, async (req, res) => {
         email: user.email,
         identityNumber: user.identityNumber || "11111111111",
         registrationAddress: address.addressDetail,
-        ip: req.ip || req.headers["x-forwarded-for"] || "85.34.78.112",
+        ip: req.ip || req.headers["x-forwarded-for"] || "127.0.0.1",
         city: address.province,
         country: address.country || "Türkiye",
       },
@@ -477,28 +502,24 @@ router.post("/checkout/3d/initialize", authMiddleware, async (req, res) => {
       })),
     };
 
-    console.log("💳 Gönderilen paymentData:", paymentData);
+    console.log("📦 Buyer kontrol:", paymentData.buyer);
 
     iyzipay.threedsInitialize.create(paymentData, (err, result) => {
-      if (err) {
-        console.error("❌ 3D initialize error:", err);
-        return res
-          .status(400)
-          .json({ message: "3D Secure başlatılamadı", error: err });
+      if (err || result.status !== "success") {
+        console.error("❌ 3D initialize failed:", err || result);
+        return res.status(400).json({
+          message: "3D Secure başlatılamadı",
+          error: err?.message || result.errorMessage,
+        });
       }
 
-      if (result.status !== "success") {
-        console.error("❌ 3D initialize failed:", result);
-        return res
-          .status(400)
-          .json({
-            message: "3D Secure başlatılamadı",
-            error: result.errorMessage,
-            rawResponse: result,
-          });
-      }
+      // ✅ TEST AMAÇLI: Base64 HTML içeriğini terminale yazdır
+      console.log("🧾 3D HTML İçeriği (base64):");
+      console.log(result.threeDSHtmlContent);
 
-      console.log("✅ 3D initialize success:", result);
+      // Ayrıca redirect URL varsa onu da görmek faydalı olur
+      console.log("🌐 Redirect URL:", result.redirectUrl);
+
       return res.status(200).json({
         status: "success",
         redirectUrl: result.redirectUrl || null,
@@ -510,8 +531,6 @@ router.post("/checkout/3d/initialize", authMiddleware, async (req, res) => {
     res.status(500).json({ message: "Sunucu hatası", error: error.message });
   }
 });
-
-
 
 // Kayıtlı Kartları getirme
 router.get("/cards", authMiddleware, async (req, res) => {
