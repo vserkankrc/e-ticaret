@@ -1,0 +1,53 @@
+.canceled-orders-container {
+    padding: 20px;
+    background-color: #fff;
+    border-radius: 8px;
+    box-shadow: 0 0 8px rgb(0 0 0 / 0.1);
+    max-width: 1000px;
+    margin: 0 auto;
+    min-height: 300px;
+  }
+  
+  .canceled-orders-title {
+    font-size: 24px;
+    font-weight: 600;
+    margin-bottom: 24px;
+    color: #d93025; /* kırmızı ton */
+    text-align: center;
+  }
+  
+  .canceled-orders-table {
+    font-size: 14px;
+  }
+  
+  .ant-table-thead > tr > th {
+    background-color: #f9f9f9;
+    font-weight: 700;
+    color: #555;
+  }
+  
+  .ant-table-tbody > tr > td {
+    vertical-align: middle;
+  }
+  
+  .ant-tag-red {
+    background-color: #f44336;
+    color: #fff;
+    font-weight: 600;
+  }
+  .canceled-orders-container {
+    padding: 24px;
+    background-color: #fff;
+    border-radius: 8px;
+  }
+  
+  .canceled-orders-title {
+    font-size: 20px;
+    font-weight: 600;
+    margin-bottom: 16px;
+  }
+  
+  .canceled-orders-table .ant-table {
+    border: 1px solid #f0f0f0;
+  }
+  

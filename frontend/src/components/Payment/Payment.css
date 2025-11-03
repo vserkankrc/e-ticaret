@@ -1,12 +1,14 @@
-/* Genel sayfa düzeni */
+/* === GENEL SAYFA DÜZENİ === */
 .payment-page {
-  padding: 2rem;
+  padding: 2.5rem;
   display: flex;
   justify-content: center;
-  background-color: #f9f9f9;
+  background-color: #f4f6f8;
+  font-family: "Inter", "Segoe UI", sans-serif;
+  color: #333;
 }
 
-/* 2 sütunlu grid yapısı */
+/* === GRID DÜZENİ === */
 .payment-grid {
   display: grid;
   grid-template-columns: 2fr 1fr;
@@ -15,27 +17,39 @@
   width: 100%;
 }
 
-/* Sol sütun: adres, kart, form */
+/* === SOL SÜTUN === */
 .payment-left {
-  background: #fff;
+  background: #ffffff;
   padding: 2rem;
-  border-radius: 12px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.06);
+  border-radius: 16px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
   display: flex;
   flex-direction: column;
-  gap: 1.5rem;
+  gap: 1.8rem;
+  transition: all 0.3s ease;
 }
 
-/* Sağ sütun: sipariş özeti */
+/* === SAĞ SÜTUN === */
 .payment-right {
-  background: #fff;
+  background: #ffffff;
   padding: 2rem;
-  border-radius: 12px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.06);
+  border-radius: 16px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
   height: fit-content;
+  position: sticky;
+  top: 2rem;
 }
 
-/* Kart form alanı */
+/* === BAŞLIKLAR === */
+.payment-left h3,
+.payment-right h3 {
+  font-size: 20px;
+  font-weight: 600;
+  color: #1a1a1a;
+  margin-bottom: 1rem;
+}
+
+/* === KART FORM === */
 .card-form {
   display: flex;
   flex-wrap: wrap;
@@ -45,68 +59,170 @@
 .card-form input {
   flex: 1 1 30%;
   min-width: 140px;
-  padding: 10px;
+  padding: 12px;
   border: 1px solid #ddd;
-  border-radius: 6px;
-  font-size: 14px;
+  border-radius: 8px;
+  font-size: 15px;
+  transition: all 0.2s ease;
 }
 
-/* Satış sözleşmesi checkbox */
+.card-form input:focus {
+  border-color: #0071e3;
+  box-shadow: 0 0 4px rgba(0, 113, 227, 0.3);
+  outline: none;
+}
+
+/* === KAYITLI KARTLAR === */
+.saved-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.cards-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.card-box {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  background-color: #fafafa;
+  border-radius: 10px;
+  padding: 1rem 1.5rem;
+  position: relative;
+  border: 1px solid #e5e5e5;
+  transition: all 0.2s ease;
+}
+
+.card-box:hover {
+  border-color: #0071e3;
+  background-color: #f0f8ff;
+  transform: translateY(-2px);
+}
+
+.card-radio {
+  margin-top: 0.2rem;
+}
+
+.card-details {
+  flex: 1;
+}
+
+.card-holder {
+  font-weight: 600;
+  font-size: 15px;
+  color: #222;
+}
+
+.card-number,
+.card-expiry {
+  font-size: 14px;
+  color: #666;
+}
+
+.btn-delete {
+  background: transparent;
+  border: none;
+  color: #ff4d4f;
+  cursor: pointer;
+  font-size: 16px;
+  transition: transform 0.2s ease;
+}
+
+.btn-delete:hover {
+  transform: scale(1.2);
+}
+
+/* Yeni kart ekleme linki */
+.new-card-toggle {
+  color: #0071e3;
+  font-size: 14px;
+  cursor: pointer;
+  text-decoration: underline;
+  font-weight: 500;
+}
+
+.new-card-toggle:hover {
+  color: #005bb5;
+}
+
+/* === SÖZLEŞME ALANI === */
 .contract-checkbox {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 0.6rem;
   font-size: 14px;
+  color: #444;
 }
 
-/* Submit butonu */
+/* === SUBMIT BUTONU === */
 .payment-submit-btn {
-  background-color: #ccc;
+  background: linear-gradient(135deg, #0071e3, #005bb5);
   color: white;
   border: none;
-  padding: 0.8rem 1.5rem;
-  border-radius: 8px;
+  padding: 0.9rem 1.8rem;
+  border-radius: 10px;
   cursor: not-allowed;
   font-weight: 600;
   font-size: 16px;
-  transition: background-color 0.3s ease;
+  transition: all 0.3s ease;
+  box-shadow: 0 3px 10px rgba(0, 113, 227, 0.3);
 }
 
 .payment-submit-btn:enabled {
-  background-color: #0071e3;
   cursor: pointer;
+  opacity: 1;
 }
 
-/* Sipariş özeti yazı stilleri */
-.order-summary {
-  font-size: 16px;
+.payment-submit-btn:enabled:hover {
+  background: linear-gradient(135deg, #005bb5, #004999);
+  transform: translateY(-2px);
+}
+
+/* === SİPARİŞ ÖZETİ === */
+.cart-summary {
+  font-size: 15px;
   color: #333;
 }
 
-.order-summary h3 {
-  font-size: 20px;
+.cart-summary h3 {
+  font-size: 18px;
   font-weight: 600;
   margin-bottom: 1rem;
 }
 
-.order-summary ul {
+.cart-summary ul {
   list-style: none;
   padding: 0;
   margin: 0;
 }
 
-.order-summary li {
+.cart-summary li {
   display: flex;
   justify-content: space-between;
-  margin-bottom: 0.5rem;
+  margin-bottom: 0.6rem;
 }
 
-.order-summary .total {
+.cart-summary hr {
+  margin: 1rem 0;
+  border: 0;
+  border-top: 1px solid #eee;
+}
+
+.cart-summary strong {
+  color: #111;
+}
+
+.cart-summary .total {
   font-weight: bold;
   font-size: 18px;
   margin-top: 1rem;
 }
 
+/* === 3D SECURE ve ÖDEME TİPİ === */
 .payment-type-selection {
   margin-bottom: 1rem;
 }
@@ -115,4 +231,105 @@
   font-size: 1rem;
   font-weight: 500;
   cursor: pointer;
+  color: #333;
+}
+.contract-warning {
+  color: #d9534f;
+  font-size: 0.9rem;
+  margin-top: 8px;
+}
+/* === KARTI KAYDET SEÇENEĞİ === */
+.save-card-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  font-size: 15px;
+  color: #333;
+  padding: 0.6rem 1rem;
+  border: 1px solid #e0e0e0;
+  border-radius: 10px;
+  background-color: #f9f9f9;
+  transition: all 0.2s ease;
+}
+
+.save-card-checkbox:hover {
+  border-color: #0071e3;
+  background-color: #f0f8ff;
+}
+
+.save-card-checkbox input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  accent-color: #0071e3;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.save-card-checkbox label {
+  user-select: none;
+  font-weight: 500;
+}
+
+.save-card-checkbox input[type="checkbox"]:focus {
+  outline: 2px solid rgba(0, 113, 227, 0.4);
+
+};
+
+
+/* === Ödeme Seçenekleri / Kart Stili === */
+.payment-option-box {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  padding: 0.8rem 1rem;
+  border: 1px solid #e0e0e0;
+  border-radius: 10px;
+  background-color: #f9f9f9;
+  transition: all 0.2s ease;
+}
+
+.payment-option-box:hover {
+  border-color: #0071e3;
+  background-color: #f0f8ff;
+}
+
+.payment-option-box input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  accent-color: #0071e3;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.payment-option-box label {
+  font-weight: 500;
+  user-select: none;
+}
+
+.payment-option-box input[type="checkbox"]:focus {
+  outline: 2px solid rgba(0, 113, 227, 0.4);
+  outline-offset: 2px;
+}
+
+/* === Sözleşme uyarısı === */
+.payment-option-box .contract-warning {
+  color: #d9534f;
+  font-size: 0.9rem;
+  margin-top: 6px;
+}
+
+
+
+/* === RESPONSIVE === */
+@media (max-width: 900px) {
+  .payment-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .payment-right {
+    position: relative;
+    top: auto;
+  }
 }

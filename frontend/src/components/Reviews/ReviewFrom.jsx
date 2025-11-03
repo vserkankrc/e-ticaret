@@ -15,11 +15,11 @@ const ReviewForm = ({ productId }) => {
     if (!rating || !comment.trim()) return;
 
     try {
-      await api.post("/api/reviews", {
-        productId,
-        rating,
-        comment,
-      }, { withCredentials: true });
+   await api.post(`/api/reviews/${productId}`, {
+  rating,
+  comment,
+}, { withCredentials: true });
+
 
       setSubmitted(true);
     } catch (error) {

@@ -103,7 +103,7 @@ const SavedCards = ({ onCardSelect }) => {
             onCardSelect(null);
           }}
         >
-          Yeni kart kullanmak istiyorum
+       
         </p>
       )}
     </section>

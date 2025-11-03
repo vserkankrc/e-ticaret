@@ -2,6 +2,7 @@ import { createContext, useState, useEffect, useCallback, useContext } from "rea
 import PropTypes from "prop-types";
 import api from "../utils/axios"; // api import edildi
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
@@ -67,6 +68,7 @@ AuthProvider.propTypes = {
 };
 
 // ** Custom Hook **
+// eslint-disable-next-line react-refresh/only-export-components
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (context === undefined) {

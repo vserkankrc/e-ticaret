@@ -1,5 +1,7 @@
 import PropTypes from "prop-types";
 
+import "./ThreeDSecurity.css";
+
 const ThreeDSecurity = ({ use3DSecure, setUse3DSecure }) => {
   return (
     <div className="payment-type-selection">

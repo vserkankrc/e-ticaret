@@ -42,13 +42,29 @@ app.use("/assets", express.static(path.join(__dirname, "src/assets")));
 app.use(express.json());
 app.use(logger(process.env.LOGGER || "dev"));
 app.use(helmet());
+
+
+// İzin verilen frontend listesi
+const allowedOrigins = ["http://localhost:5174", "http://localhost:5173"];
+
 app.use(
   cors({
-    origin: process.env.CORS_ORIGIN, // Frontend URL burada olmalı
-    credentials: true,
+    origin: function (origin, callback) {
+      // Eğer istek frontend’den geliyorsa veya postman gibi tool’dan geliyorsa
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error("CORS policy: Bu origin izinli değil."));
+      }
+    },
+    credentials: true, // cookie gönderimi için gerekli
   })
 );
+
 app.use(cookieParser());
+app.use(express.json());
+
+
 
 // Passport JWT stratejisi
 passport.serializeUser((user, done) => done(null, user));

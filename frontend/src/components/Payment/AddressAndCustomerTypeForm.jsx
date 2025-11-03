@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import PropTypes from "prop-types";
 import { useNavigate } from "react-router-dom";
 import api from "@/utils/axios"; // ✅ axios yerine kendi oluşturduğumuz instance'ı kullanıyoruz
+import "./AddressAndCustomerTypeForm.css";
 
 const AddressAndCustomerTypeForm = ({
   addresses,

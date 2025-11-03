@@ -1,0 +1,33 @@
+.tiptap-container {
+    border: 1px solid #d9d9d9;
+    border-radius: 6px;
+    padding: 12px;
+    background-color: #fff;
+  }
+  
+  .tiptap-toolbar {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 8px;
+  }
+  
+  .tiptap-toolbar button {
+    padding: 4px 8px;
+    border: 1px solid #d9d9d9;
+    border-radius: 4px;
+    background: #f9f9f9;
+    cursor: pointer;
+    font-size: 14px;
+  }
+  
+  .tiptap-toolbar button.is-active {
+    background-color: #1677ff;
+    color: white;
+    border-color: #1677ff;
+  }
+  
+  .tiptap-editor {
+    min-height: 160px;
+    line-height: 1.5;
+  }
+  

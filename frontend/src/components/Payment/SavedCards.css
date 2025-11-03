@@ -1,57 +1,114 @@
+/* === Sağ sütun yapısı === */
+.payment-right {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+/* === Özet ve kayıtlı kart kutuları === */
+.summary-box,
+.saved-cards-box {
+  background-color: #fff;
+  border: 1px solid #e0e0e0;
+  border-radius: 12px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+  padding: 1.5rem;
+}
+
+/* 🔹 Aralarına ayırıcı çizgi ekleyelim */
+.saved-cards-box {
+  margin-top: 0.5rem;
+  border-top: 3px solid #0071e3; /* mavi bir ayırıcı */
+  padding-top: 1.8rem; /* başlık çizgiden biraz aşağıda olsun */
+}
+
+/* Başlığı biraz daha vurgulayalım */
+.saved-cards-box h3 {
+  font-size: 18px;
+  font-weight: 700;
+  margin-bottom: 1rem;
+  color: #222;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* === Kayıtlı Kartlar stilleri === */
 .saved-cards {
-    display: flex;
-    flex-direction: column;
-    gap: 1rem;
-  }
-  
-  .cards-list {
-    display: flex;
-    flex-direction: column;
-    gap: 1rem;
-  }
-  
-  .card-box {
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-    background-color: #f8f8f8;
-    border-radius: 8px;
-    padding: 1rem;
-    position: relative;
-    border: 1px solid #e0e0e0;
-  }
-  
-  .card-radio {
-    margin-top: 0.2rem;
-  }
-  
-  .card-details {
-    flex: 1;
-  }
-  
-  .card-holder {
-    font-weight: 600;
-    font-size: 15px;
-  }
-  
-  .card-number,
-  .card-expiry {
-    font-size: 14px;
-    color: #555;
-  }
-  
-  .btn-delete {
-    background: transparent;
-    border: none;
-    color: #ff4d4f;
-    cursor: pointer;
-    font-size: 16px;
-  }
-  
-  .new-card-toggle {
-    color: #0071e3;
-    font-size: 14px;
-    cursor: pointer;
-    text-decoration: underline;
-  }
-  
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.cards-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.card-box {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  background-color: #f8f8f8;
+  border-radius: 8px;
+  padding: 1rem;
+  position: relative;
+  border: 1px solid #e0e0e0;
+  transition: all 0.2s ease;
+}
+
+.card-box:hover {
+  background-color: #f0f4ff;
+  border-color: #0071e3;
+}
+
+.card-radio {
+  margin-top: 0.2rem;
+}
+
+.card-details {
+  flex: 1;
+}
+
+.card-holder {
+  font-weight: 600;
+  font-size: 15px;
+}
+
+.card-number,
+.card-expiry {
+  font-size: 14px;
+  color: #555;
+}
+
+.btn-delete {
+  background: transparent;
+  border: none;
+  color: #ff4d4f;
+  cursor: pointer;
+  font-size: 16px;
+}
+
+.new-card-toggle {
+  color: #0071e3;
+  font-size: 14px;
+  cursor: pointer;
+  text-decoration: underline;
+  margin-top: 0.5rem;
+}
+.saved-cards h3 {
+  position: relative;
+  padding-top: 1rem;
+  margin-top: 1.5rem;
+}
+
+.saved-cards h3::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 350px;       /* çizginin uzunluğu */
+  height: 3px;       /* çizgi kalınlığı */
+  background-color: #0071e3;
+  border-radius: 2px; /* köşeleri hafif yuvarlat */
+}

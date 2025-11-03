@@ -2,7 +2,7 @@ import { createContext, useEffect, useState } from "react";
 import PropTypes from "prop-types";
 
 // CartContext oluşturuluyor
- export const CartContext = createContext();
+export const CartContext = createContext();
 
 export const CartProvider = ({ children }) => {
   const [cartItems, setCartItems] = useState(() => {
@@ -59,6 +59,18 @@ export const CartProvider = ({ children }) => {
     localStorage.removeItem("cartItems");
   };
 
+  // 🔹 Kupon uygulama fonksiyonu: cartItems discount günceller ve localStorage ile senkronize eder
+  const applyCouponToCart = (discountPercent) => {
+    setCartItems((prevCart) => {
+      const updatedCart = prevCart.map((item) => ({
+        ...item,
+        discount: discountPercent,
+      }));
+      localStorage.setItem("cartItems", JSON.stringify(updatedCart));
+      return updatedCart;
+    });
+  };
+
   return (
     <CartContext.Provider
       value={{
@@ -66,6 +78,7 @@ export const CartProvider = ({ children }) => {
         addToCart,
         removeFromCart,
         clearCart,
+        applyCouponToCart, // 🔹 eklendi
       }}
     >
       {children}

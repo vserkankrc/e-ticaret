@@ -114,3 +114,23 @@
 {"errorCode":"5032","errorMessage":"buyerName gönderilmesi zorunludur","level":"warn","message":"İyzico ödemesi reddedildi","type":"payment-declined","userEmail":"serkan_krc@outlook.com"}
 {"errorCode":"5032","errorMessage":"buyerName gönderilmesi zorunludur","level":"warn","message":"İyzico ödemesi reddedildi","type":"payment-declined","userEmail":"serkan_krc@outlook.com"}
 {"level":"info","message":"Ödeme başarıyla gerçekleşti","paymentId":"27464922","price":"2000","type":"payment-success","userEmail":"serkan_krc@outlook.com"}
+{"level":"info","message":"Ödeme başarıyla gerçekleşti","paymentId":"27548608","price":"400","type":"payment-success","userEmail":"serkan_krc@outlook.com"}
+{"level":"info","message":"[2025-11-03T12:44:49.463Z] ✅ serkan_krc@outlook.com (683b3e27d919ba49c1efae29) için iptal maili başarıyla gönderildi. Sipariş: 690855138d158a1ef2e11dc0"}
+{"level":"info","message":"[cancel-approve] Sipariş verisi getirildi: 690855138d158a1ef2e11dc0"}
+{"level":"info","message":"[cancel-approve] Kullanılacak transactionId: 29516371"}
+{"level":"info","message":"[cancel-approve] İade edilecek tutar: 400 - Sipariş: 690855138d158a1ef2e11dc0"}
+{"level":"error","message":"[cancel-approve] İade hatası: Üye işyerinin bakiyesi bu iadeyi yapmak için yetersiz - Sipariş: 690855138d158a1ef2e11dc0"}
+{"errorCode":"5062","errorMessage":"Gönderilen tutar tüm kırılımların toplam tutarına eşit olmalıdır","level":"warn","message":"İyzico ödemesi reddedildi","type":"payment-declined","userEmail":"serkan_krc@outlook.com"}
+{"level":"info","message":"Ödeme başarıyla gerçekleşti","paymentId":"27551899","price":"360","type":"payment-success","userEmail":"serkan_krc@outlook.com"}
+{"level":"info","message":"Ödeme başarıyla gerçekleşti","paymentId":"27551908","price":"360","type":"payment-success","userEmail":"serkan_krc@outlook.com"}
+{"level":"info","message":"Ödeme başarıyla gerçekleşti","paymentId":"27551918","price":"1600","type":"payment-success","userEmail":"serkan_krc@outlook.com"}
+{"level":"info","message":"[2025-11-03T17:51:27.277Z] ✅ serkan_krc@outlook.com (683b3e27d919ba49c1efae29) için iptal maili başarıyla gönderildi. Sipariş: 6908eaca96ca6a802d98f34a"}
+{"level":"info","message":"[cancel-approve] Sipariş verisi getirildi: 6908eaca96ca6a802d98f34a"}
+{"level":"info","message":"[cancel-approve] Kullanılacak transactionId: 29519596"}
+{"level":"info","message":"[cancel-approve] İade edilecek tutar: 360 - Sipariş: 6908eaca96ca6a802d98f34a"}
+{"level":"error","message":"[cancel-approve] İade hatası: Üye işyerinin bakiyesi bu iadeyi yapmak için yetersiz - Sipariş: 6908eaca96ca6a802d98f34a"}
+{"level":"info","message":"[cancel-approve] Sipariş verisi getirildi: 6908eaca96ca6a802d98f34a"}
+{"level":"info","message":"[cancel-approve] Kullanılacak transactionId: 29519596"}
+{"level":"info","message":"[cancel-approve] İade edilecek tutar: 360 - Sipariş: 6908eaca96ca6a802d98f34a"}
+{"level":"error","message":"[cancel-approve] İade hatası: Üye işyerinin bakiyesi bu iadeyi yapmak için yetersiz - Sipariş: 6908eaca96ca6a802d98f34a"}
+{"level":"info","message":"Ödeme başarıyla gerçekleşti","paymentId":"27552060","price":"2000","type":"payment-success","userEmail":"serkan_krc@outlook.com"}

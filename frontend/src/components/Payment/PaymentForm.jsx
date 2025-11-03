@@ -69,177 +69,199 @@ const PaymentForm = () => {
     return new TextDecoder("utf-8").decode(bytes);
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    if (isProcessingPayment) return;
+const handleSubmit = async (e) => {
+  e.preventDefault();
+  if (isProcessingPayment) return;
 
-    if (!acceptedContract) {
-      return message.warning("Lütfen satış sözleşmesini onaylayın");
-    }
+  if (!acceptedContract) {
+    return message.warning("Lütfen satış sözleşmesini onaylayın");
+  }
 
-    if (!selectedAddressId) {
-      return message.warning("Teslimat adresi seçmelisiniz");
-    }
+  if (!selectedAddressId) {
+    return message.warning("Teslimat adresi seçmelisiniz");
+  }
 
-    if (!selectedCardId) {
-      if (cardNumber.replace(/\s/g, "").length !== 16)
-        return message.error("Kart numarası 16 haneli olmalıdır");
-      if (!validateExpiry(expiryDate))
-        return message.error("Son kullanma tarihi geçersiz");
-      if (!validateCVC(cvc)) return message.error("CVC kodu geçersiz");
-    }
+  if (!selectedCardId) {
+    if (cardNumber.replace(/\s/g, "").length !== 16)
+      return message.error("Kart numarası 16 haneli olmalıdır");
+    if (!validateExpiry(expiryDate))
+      return message.error("Son kullanma tarihi geçersiz");
+    if (!validateCVC(cvc)) return message.error("CVC kodu geçersiz");
+  }
 
-    const selectedAddress = addresses.find((a) => a._id === selectedAddressId);
-    if (!selectedAddress) return message.error("Teslimat adresi bulunamadı");
+  const selectedAddress = addresses.find((a) => a._id === selectedAddressId);
+  if (!selectedAddress) return message.error("Teslimat adresi bulunamadı");
 
-    if (cartItems.length === 0) return message.error("Sepetiniz boş");
+  if (cartItems.length === 0) return message.error("Sepetiniz boş");
 
-    const paymentInfo = JSON.parse(localStorage.getItem("paymentInfo")) || {};
-    const totalAmount = paymentInfo.cartTotal || 0;
+  // 🔹 Ödeme bilgilerini al
+  const paymentInfo = JSON.parse(localStorage.getItem("paymentInfo")) || {};
+  const discountAmount = paymentInfo.discountAmount || 0;
 
-    const orderPayload = {
-      products: cartItems.map((item) => ({
-        
-        productId: item.productId || item._id,
-        quantity: item.quantity,
-        price: item.price,
-        image: item.image || item.images?.[0] || "",
-        color: item.selectedColor || null,
-        size: item.selectedSize || null,
-      })),
-      totalAmount,
-      trackingNumber: "",
-      address: {
-        province: selectedAddress.province || "",
-        district: selectedAddress.district || "",
-        postalCode: selectedAddress.postalCode || "",
-        addressDetail:
-          selectedAddress.address || selectedAddress.addressDetail || "",
-        country: selectedAddress.country || "",
-      },
-      paymentMethod,
-      agreementAccepted: acceptedContract,
-      use3DSecure,
-      card: selectedCardId
-        ? { savedCardId: selectedCardId }
-        : {
-            cardHolderName: cardName,
-            cardNumber: cardNumber.replace(/\s/g, ""),
-            expireMonth: expiryDate.split("/")[0],
-            expireYear: `20${expiryDate.split("/")[1]}`,
-            cvc,
-          },
-      saveCard,
+  // 🔹 Her ürünün indirimli fiyatını hesapla
+  const productsWithDiscount = cartItems.map((item) => {
+    const discountedPrice = Math.round(
+      item.price * (1 - (discountAmount / (paymentInfo.subTotal || 1)))
+    );
+    return {
+      productId: item.productId || item._id,
+      quantity: item.quantity,
+      price: discountedPrice, // indirimli fiyat
+      image: item.image || item.images?.[0] || "",
+      color: item.selectedColor || null,
+      size: item.selectedSize || null,
     };
+  });
 
-    try {
-      setIsProcessingPayment(true);
+  // 🔹 Toplam tutar ürünlerin toplamına eşit olmalı
+  const totalAmount = productsWithDiscount.reduce(
+    (sum, item) => sum + item.price * item.quantity,
+    0
+  );
 
-      if (use3DSecure) {
-        const response = await axios.post(
-          "/api/orders/checkout/3d/initialize",
-          orderPayload,
-          {
-            withCredentials: true,
-            headers: { "Content-Type": "application/json" },
-          }
-        );
+  const orderPayload = {
+    products: productsWithDiscount,
+    totalAmount,
+    trackingNumber: "",
+    address: {
+      province: selectedAddress.province || "",
+      district: selectedAddress.district || "",
+      postalCode: selectedAddress.postalCode || "",
+      addressDetail:
+        selectedAddress.address || selectedAddress.addressDetail || "",
+      country: selectedAddress.country || "",
+    },
+    paymentMethod,
+    agreementAccepted: acceptedContract,
+    use3DSecure,
+    card: selectedCardId
+      ? { savedCardId: selectedCardId }
+      : {
+          cardHolderName: cardName,
+          cardNumber: cardNumber.replace(/\s/g, ""),
+          expireMonth: expiryDate.split("/")[0],
+          expireYear: `20${expiryDate.split("/")[1]}`,
+          cvc,
+        },
+    saveCard,
+  };
 
-        if (response.data?.threeDSHtmlContent) {
-          // 💾 paymentId'yi sakla
-          if (response.data.paymentId) {
-            localStorage.setItem("paymentId", response.data.paymentId);
-          }
+  try {
+    setIsProcessingPayment(true);
 
-          const decodedHtml = decodeBase64Utf8(response.data.threeDSHtmlContent);
-          const tempDiv = document.createElement("div");
-          tempDiv.innerHTML = decodedHtml;
+    if (use3DSecure) {
+      const response = await axios.post(
+        "/api/orders/checkout/3d/initialize",
+        orderPayload,
+        {
+          withCredentials: true,
+          headers: { "Content-Type": "application/json" },
+        }
+      );
 
-          const form = tempDiv.querySelector("form");
-          if (form) {
-            document.body.appendChild(form);
-            form.submit();
-          } else {
-            message.error("3D Secure formu bulunamadı.");
-            setIsProcessingPayment(false);
-          }
+      if (response.data?.threeDSHtmlContent) {
+        if (response.data.paymentId) {
+          localStorage.setItem("paymentId", response.data.paymentId);
+        }
+
+        const decodedHtml = decodeBase64Utf8(response.data.threeDSHtmlContent);
+        const tempDiv = document.createElement("div");
+        tempDiv.innerHTML = decodedHtml;
+
+        const form = tempDiv.querySelector("form");
+        if (form) {
+          document.body.appendChild(form);
+          form.submit();
         } else {
-          message.error("3D Secure içeriği alınamadı.");
+          message.error("3D Secure formu bulunamadı.");
           setIsProcessingPayment(false);
         }
       } else {
-        await axios.post("/api/orders/checkout", orderPayload, {
-          withCredentials: true,
-          headers: { "Content-Type": "application/json" },
-        });
-
-        message.success("Ödeme başarılı! Siparişiniz oluşturuldu");
-        localStorage.removeItem("paymentInfo");
-        clearCart();
-        navigate("/profile", { state: { activeTab: "orders" } });
+        message.error("3D Secure içeriği alınamadı.");
+        setIsProcessingPayment(false);
       }
-    } catch (error) {
-      console.error("Sipariş oluşturulurken hata:", error);
-      message.error(error.response?.data?.message || "Ödeme işlemi başarısız");
-      setIsProcessingPayment(false);
+    } else {
+      await axios.post("/api/orders/checkout", orderPayload, {
+        withCredentials: true,
+        headers: { "Content-Type": "application/json" },
+      });
+
+      message.success("Ödeme başarılı! Siparişiniz oluşturuldu");
+      localStorage.removeItem("paymentInfo");
+      clearCart();
+      navigate("/profile", { state: { activeTab: "orders" } });
     }
-  };
+  } catch (error) {
+    console.error("Sipariş oluşturulurken hata:", error);
+    message.error(error.response?.data?.message || "Ödeme işlemi başarısız");
+    setIsProcessingPayment(false);
+  }
+};
 
-  return (
-    <div className="payment-page">
-      <form onSubmit={handleSubmit} className="payment-grid" noValidate>
-        <div className="payment-left">
-          <AddressAndCustomerTypeForm
-            addresses={addresses}
-            selectedAddressId={selectedAddressId}
-            setSelectedAddressId={setSelectedAddressId}
-            setAddresses={setAddresses}
-            setUserDetails={setUserDetails}
+
+ return (
+  <div className="payment-page">
+    <form onSubmit={handleSubmit} className="payment-grid" noValidate>
+      {/* Sol sütun */}
+      <div className="payment-left">
+        <AddressAndCustomerTypeForm
+          addresses={addresses}
+          selectedAddressId={selectedAddressId}
+          setSelectedAddressId={setSelectedAddressId}
+          setAddresses={setAddresses}
+          setUserDetails={setUserDetails}
+        />
+
+        {!selectedCardId && (
+          <NewCardForm
+            cardName={cardName}
+            setCardName={setCardName}
+            cardNumber={cardNumber}
+            setCardNumber={setCardNumber}
+            expiryDate={expiryDate}
+            setExpiryDate={setExpiryDate}
+            cvc={cvc}
+            setCvc={setCvc}
+            saveCard={saveCard}
+            setSaveCard={setSaveCard}
+            setIsFlipped={setIsFlipped}
           />
+        )}
 
-          {!selectedCardId && (
-            <NewCardForm
-              cardName={cardName}
-              setCardName={setCardName}
-              cardNumber={cardNumber}
-              setCardNumber={setCardNumber}
-              expiryDate={expiryDate}
-              setExpiryDate={setExpiryDate}
-              cvc={cvc}
-              setCvc={setCvc}
-              saveCard={saveCard}
-              setSaveCard={setSaveCard}
-              setIsFlipped={setIsFlipped}
-            />
-          )}
+        <ThreeDSecurity
+          use3DSecure={use3DSecure}
+          setUse3DSecure={setUse3DSecure}
+        />
 
-          <ThreeDSecurity
-            use3DSecure={use3DSecure}
-            setUse3DSecure={setUse3DSecure}
-          />
+        <AgreementSection
+          accepted={acceptedContract}
+          setAccepted={setAcceptedContract}
+        />
 
-          <AgreementSection
-            accepted={acceptedContract}
-            setAccepted={setAcceptedContract}
-          />
+        <button
+          type="submit"
+          className="payment-submit-btn"
+          disabled={!acceptedContract || isProcessingPayment}
+        >
+          {isProcessingPayment ? "Ödeme Yapılıyor..." : "Ödeme Yap"}
+        </button>
 
-          <SavedCards onCardSelect={setSelectedCardId} />
+        {!acceptedContract && (
+          <p className="contract-warning">
+            ⚠️ Ödemeye devam etmek için lütfen satış sözleşmesini onaylayın.
+          </p>
+        )}
+      </div>
 
-          <button
-            type="submit"
-            className="payment-submit-btn"
-            disabled={!acceptedContract || isProcessingPayment}
-          >
-            {isProcessingPayment ? "Ödeme Yapılıyor..." : "Ödeme Yap"}
-          </button>
-        </div>
+      {/* Sağ sütun */}
+      <div className="payment-right">
+        <CartSummary items={cartItems} />
+        <SavedCards onCardSelect={setSelectedCardId} />
+      </div>
+    </form>
+  </div>
+);
 
-        <div className="payment-right">
-          <CartSummary items={cartItems} />
-        </div>
-      </form>
-    </div>
-  );
 };
 
 export default PaymentForm;

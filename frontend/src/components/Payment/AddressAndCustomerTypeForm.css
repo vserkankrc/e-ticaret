@@ -1,0 +1,74 @@
+.address-customer-type-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
+  background: #fff;
+  border: 1px solid #e5e5e5;
+  border-radius: 10px;
+  padding: 1.5rem;
+  box-shadow: 0 1px 6px rgba(0, 0, 0, 0.05);
+}
+
+.address-customer-type-form label {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #333;
+}
+
+.address-customer-type-form select {
+  width: 100%;
+  padding: 12px 14px;
+  font-size: 15px;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  background-color: #fafafa;
+  color: #333;
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+.address-customer-type-form select:hover {
+  border-color: #0071e3;
+  background-color: #fff;
+}
+
+.address-customer-type-form select:focus {
+  outline: none;
+  border-color: #0071e3;
+  box-shadow: 0 0 0 3px rgba(0, 113, 227, 0.2);
+}
+
+/* Adres yoksa uyarı */
+.address-customer-type-form p {
+  font-size: 14px;
+  color: #d9534f;
+  margin: 0;
+}
+
+/* Adres ekle butonu */
+.address-customer-type-form button {
+  background-color: #0071e3;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 10px 14px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: background-color 0.2s ease;
+}
+
+.address-customer-type-form button:hover {
+  background-color: #005bb5;
+}
+
+/* Seçilen adres detayları (isteğe bağlı görünüm) */
+.selected-address-details {
+  margin-top: 12px;
+  padding: 10px;
+  background-color: #f8f8f8;
+  border-radius: 8px;
+  font-size: 14px;
+  color: #555;
+  line-height: 1.4;
+  border: 1px solid #eee;
+}

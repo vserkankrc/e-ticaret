@@ -1,0 +1,14 @@
+.admin-reviews {
+    padding: 24px;
+  }
+  
+  .admin-reviews h2 {
+    font-size: 24px;
+    margin-bottom: 16px;
+  }
+  
+  .action-buttons {
+    display: flex;
+    gap: 8px;
+  }
+  

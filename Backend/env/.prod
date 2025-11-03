@@ -1,5 +1,6 @@
 MONGO_URI=mongodb+srv://serkankrc:v2X5XfpXssdrbdQb@eticaret.v6nmq.mongodb.net/eticaret
 DEPLOYMENT=PRODUCTION
+CORS_ORIGIN=http://localhost:5174
 PORT=8080
 HTTPS_ENABLED=true
 LOGGER=tiny

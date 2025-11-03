@@ -43,9 +43,16 @@ const Tabs = ({ product }) => {
             activeTab === "desc" ? "active" : ""
           }`}
         >
-          <p className="product-description">
-            {description || "Ürün açıklaması bulunmamaktadır."}
-          </p>
+          {description ? (
+            <div
+              className="product-description"
+              dangerouslySetInnerHTML={{ __html: description }}
+            />
+          ) : (
+            <p className="product-description">
+              Ürün açıklaması bulunmamaktadır.
+            </p>
+          )}
         </div>
 
         <div className={`content ${activeTab === "reviews" ? "active" : ""}`}>
