@@ -100,9 +100,9 @@ router.post("/checkout", authMiddleware, async (req, res) => {
         buyerName: `${user.name} ${user.surname}`,
         name: user.name,
         surname: user.surname,
-        gsmNumber: user.phone,
+        gsmNumber: user.phoneNumber,
         email: user.email,
-        identityNumber: user.identityNumber || "11111111111",
+        identityNumber: user.tcIdentityNumber || "11111111111",
         registrationAddress: address.addressDetail,
         ip: req.ip || req.headers["x-forwarded-for"] || "85.34.78.112",
         city: address.province,
@@ -473,9 +473,9 @@ router.post("/checkout/3d/initialize", authMiddleware, async (req, res) => {
         id: user._id.toString(),
         name: user.name,
         surname: user.surname,
-        gsmNumber: user.phone,
+        gsmNumber: user.phoneNumber,
         email: user.email,
-        identityNumber: user.identityNumber || "11111111111",
+        identityNumber: user.tcIdentityNumber || "11111111111",
         registrationAddress: address.addressDetail,
         ip: req.ip || req.headers["x-forwarded-for"] || "127.0.0.1",
         city: address.province,
@@ -503,6 +503,7 @@ router.post("/checkout/3d/initialize", authMiddleware, async (req, res) => {
     };
 
     console.log("📦 Buyer kontrol:", paymentData.buyer);
+    console.log("User object:", user);
 
     iyzipay.threedsInitialize.create(paymentData, (err, result) => {
       if (err || result.status !== "success") {

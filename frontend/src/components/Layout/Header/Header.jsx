@@ -39,14 +39,14 @@ const Header = ({ setIsSearchShow }) => {
 
   return (
     <header>
-      <div className="global-notification">
+ {/*      <div className="global-notification">
         <div className="container">
           <p>
             Türkiye&apos;nin <b>Yeni!</b> E-Ticaret sitesi{" "}
             <Link to="/">Tercihsepetim</Link>
           </p>
         </div>
-      </div>
+      </div> */}
 
       <div className="header-row">
         <div className="container">
