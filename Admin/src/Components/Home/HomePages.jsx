@@ -163,7 +163,7 @@ const HomePages = () => {
                 color: "white",
               }}
             >
-              <h2>Admin Paneli</h2>
+              <h2></h2>
             </div>
           </Header>
           <Content>

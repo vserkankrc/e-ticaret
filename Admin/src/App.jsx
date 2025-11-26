@@ -46,7 +46,7 @@ function App() {
       {/* 🧭 Admin Panel Layout */}
       {isAuthenticated && user?.role === "admin" && (
         <Route path="/admin" element={<HomePages />}>
-          <Route index element={<div>Admin Dashboard</div>} />
+    
           <Route path="users" element={<UserPage />} />
           <Route path="categories" element={<CategoryPage />} />
           <Route path="categories/create" element={<CreateCategoryPage />} />
