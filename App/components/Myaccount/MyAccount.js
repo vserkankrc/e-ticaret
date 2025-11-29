@@ -1,36 +1,101 @@
-import React from "react";
 import {
   View,
   Text,
   StyleSheet,
   TouchableOpacity,
   ScrollView,
-
 } from "react-native";
-import { Ionicons, MaterialIcons, Feather } from "@expo/vector-icons";
-import { useNavigation } from '@react-navigation/native';
-
+import { Ionicons, MaterialIcons } from "@expo/vector-icons";
+import { useNavigation } from "@react-navigation/native";
+import { useAuth } from "../../context/AuthContext";
+import api from "../../utils/axios";
+import { useEffect, useState } from "react";
 
 export default function MyAccount() {
+  const navigation = useNavigation();
+  const { isAuthenticated, user, logout } = useAuth();
+  const [unreadCount, setUnreadCount] = useState(0); // Okunmamış mesaj sayısı
 
-   const navigation = useNavigation();
+  const username = user?.name || user?.email || "Misafir";
+
+  // Bildirimleri çek (örnek API)
+  useEffect(() => {
+    const fetchNotifications = async () => {
+      if (!isAuthenticated) return;
+      try {
+        const res = await api.get("/api/notifications"); // API endpoint
+        const unread = res.data.filter((msg) => !msg.read).length;
+        setUnreadCount(unread);
+      } catch (err) {
+        console.log("Bildirim çekme hatası:", err);
+      }
+    };
+    fetchNotifications();
+  }, [isAuthenticated]);
+
+  const handleLogout = async () => {
+    try {
+      await api.post("/api/auth/logout");
+      logout(); // AuthContext'teki token ve user silinir
+      navigation.replace("Login");
+    } catch (err) {
+      console.log("Logout error:", err);
+    }
+  };
 
   return (
     <ScrollView style={styles.container}>
-      {/* Üst Kullanıcı Bilgisi */}
+      {/* Üst Başlık */}
       <View style={styles.header}>
-        <Text style={styles.userType}>Misafir kullanıcı</Text>
-        <Ionicons name="notifications-outline" size={24} />
+        {isAuthenticated ? (
+          <View style={styles.userInfo}>
+            <View style={styles.avatar}>
+              <Text style={styles.avatarText}>
+                {username.charAt(0).toUpperCase()}
+              </Text>
+            </View>
+            <View>
+              <Text style={styles.welcome}>Hoş geldin</Text>
+              <Text style={styles.username}>{username}</Text>
+            </View>
+          </View>
+        ) : (
+          <Text style={styles.userType}>Misafir kullanıcı</Text>
+        )}
+
+        {/* --- Bildirim Çanı Başlangıç --- */}
+        <TouchableOpacity
+          style={styles.notificationContainer}
+          onPress={() => navigation.navigate("Notifications")} // Notifications ekranına git
+        >
+          <Ionicons name="notifications-outline" size={28} color="red" />
+          {unreadCount > 0 && (
+            <View style={styles.badge}>
+              <Text style={styles.badgeText}>{unreadCount}</Text>
+            </View>
+          )}
+        </TouchableOpacity>
+        {/* --- Bildirim Çanı Bitiş --- */}
       </View>
 
-      {/* Üye Ol - Giriş Yap */}
-      <TouchableOpacity style={styles.primaryBtn}>
-        <Text style={styles.primaryBtnText}>Üye ol</Text>
-      </TouchableOpacity>
+      {/* Giriş yapılmamışsa */}
+      {!isAuthenticated && (
+        <>
+          <TouchableOpacity
+            style={styles.primaryBtn}
+            onPress={() => navigation.navigate("Register")}
+          >
+            <Text style={styles.primaryBtnText}>Üye ol</Text>
+          </TouchableOpacity>
 
-      <TouchableOpacity style={styles.secondaryBtn} onPress={() => navigation.navigate("Login")}>
-        <Text style={styles.secondaryBtnText}>Giriş yap</Text> 
-      </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.secondaryBtn}
+            onPress={() => navigation.navigate("Login")}
+          >
+            <Text style={styles.secondaryBtnText}>Giriş yap</Text>
+          </TouchableOpacity>
+        </>
+      )}
 
       {/* Premium Banner */}
       <View style={styles.premiumBox}>
@@ -42,15 +107,11 @@ export default function MyAccount() {
         </TouchableOpacity>
       </View>
 
-      {/* Menü Liste */}
+      {/* Menü Listesi */}
       <View style={styles.menuList}>
         <MenuItem
           title="Siparişlerim"
           icon={<MaterialIcons name="inventory" size={22} />}
-        />
-        <MenuItem
-          title="Sana Özel Fırsatlar"
-          icon={<Feather name="diamond" size={22} />}
         />
         <MenuItem
           title="Kuponlarım"
@@ -72,13 +133,22 @@ export default function MyAccount() {
           title="Link Gelir"
           icon={<MaterialIcons name="attach-money" size={22} />}
         />
+
+        {/* Çıkış Butonu */}
+        {isAuthenticated && (
+          <MenuItem
+            title="Çıkış Yap"
+            icon={<MaterialIcons name="logout" size={22} color="red" />}
+            onPress={handleLogout}
+          />
+        )}
       </View>
     </ScrollView>
   );
 }
 
-const MenuItem = ({ title, icon }) => (
-  <TouchableOpacity style={styles.menuItem}>
+const MenuItem = ({ title, icon, onPress }) => (
+  <TouchableOpacity style={styles.menuItem} onPress={onPress}>
     <View style={styles.menuIcon}>{icon}</View>
     <Text style={styles.menuText}>{title}</Text>
     <Ionicons name="chevron-forward" size={20} color="#999" />
@@ -95,12 +165,40 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
 
+  userInfo: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+  },
+
+  avatar: {
+    width: 55,
+    height: 55,
+    borderRadius: 50,
+    backgroundColor: "#FF6A00",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+
+  avatarText: {
+    color: "#fff",
+    fontSize: 24,
+    fontWeight: "700",
+  },
+
+  welcome: {
+    fontSize: 14,
+    color: "#555",
+  },
+
+  username: {
+    fontSize: 18,
+    fontWeight: "700",
+  },
+
   userType: {
     fontSize: 20,
     fontWeight: "600",
-    textAlign: "center",
-    alignItems: "center",
-    flexDirection: "row",
   },
 
   primaryBtn: {
@@ -174,5 +272,28 @@ const styles = StyleSheet.create({
   menuText: {
     flex: 1,
     fontSize: 16,
+  },
+
+  notificationContainer: {
+    position: "relative",
+  },
+
+  badge: {
+    position: "absolute",
+    top: -5,
+    right: -5,
+    backgroundColor: "red",
+    borderRadius: 10,
+    minWidth: 18,
+    height: 18,
+    justifyContent: "center",
+    alignItems: "center",
+    paddingHorizontal: 4,
+  },
+
+  badgeText: {
+    color: "#fff",
+    fontSize: 10,
+    fontWeight: "700",
   },
 });

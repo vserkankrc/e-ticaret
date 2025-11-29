@@ -13,6 +13,7 @@ import {
   ProfileOutlined,
   GiftOutlined,
   StopOutlined,
+  NotificationOutlined, // <-- Bildirim ikonu eklendi
 } from "@ant-design/icons";
 import { useNavigate, Outlet } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
@@ -113,7 +114,7 @@ const HomePages = () => {
         {
           key: "14",
           label: "Yeni Kupon Oluştur",
-          onClick: () => navigate("/admin/coupons/form"), // id yok → yeni oluştur
+          onClick: () => navigate("/admin/coupons/form"),
         },
       ],
     },
@@ -142,6 +143,12 @@ const HomePages = () => {
     },
     {
       key: "19",
+      icon: <NotificationOutlined />, // <-- Bildirim Gönder menüsü ikonu
+      label: "Bildirim Gönder",
+      onClick: () => navigate("/admin/notifications"),
+    },
+    {
+      key: "20",
       icon: <RollbackOutlined />,
       label: "Ana Sayfaya Git",
       onClick: () => navigate("/"),
@@ -163,12 +170,11 @@ const HomePages = () => {
                 color: "white",
               }}
             >
-              <h2></h2>
+              <h2>Admin Paneli</h2>
             </div>
           </Header>
           <Content>
             <div style={{ padding: "24px 50px", minHeight: 360 }}>
-              {/* ✅ Seçilen sayfa burada render olacak */}
               <Outlet />
             </div>
           </Content>

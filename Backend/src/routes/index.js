@@ -12,7 +12,7 @@ import orderRoute from "./orders.js"; // ✅ yeni eklenen satır
 import reviewsRoute from "./reviews.js";
 import pagesRoute from "./pages.js";  // yeni eklenen satır
 import productQuestionsRoute from "./productQuestions.js";
-
+import notificationsRoute from "./notifications.js"
 
 const router = express.Router();
 
@@ -29,6 +29,7 @@ router.use("/orders", orderRoute); // ✅ sipariş endpoint'i eklendi
 router.use("/reviews",reviewsRoute)
 router.use("/pages", pagesRoute);  // yeni eklenen satır
 router.use("/questions", productQuestionsRoute);
+router.use("/notifications", notificationsRoute)
 export default router;
 
 

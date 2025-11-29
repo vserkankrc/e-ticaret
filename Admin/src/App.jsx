@@ -21,6 +21,7 @@ import CreatePage from "./pages/PageList/CreatePage";
 import UpdatePage from "./pages/PageList/UpdatePage";
 import UpdateCouponPage from "./pages/Coupon/UpdateCouponPage";
 import CouponPage from "./pages/Coupon/CouponPage";
+import Notifications  from "./pages/Notifications/Notifications";
 // 🔒 Korumalı Rota
 function ProtectedRoute({ children }) {
   const { isAuthenticated, loading, user } = useAuth();
@@ -65,6 +66,8 @@ function App() {
           <Route path="pages/update/:id" element={<UpdatePage />} />
           <Route path="coupons/form/:id?" element={<UpdateCouponPage />} />
           <Route path="coupons" element={<CouponPage />} />
+          <Route path="notifications" element={<Notifications/>}/>
+          
         </Route>
       )}
 

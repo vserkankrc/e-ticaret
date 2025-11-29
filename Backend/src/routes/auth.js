@@ -66,45 +66,61 @@ router.post("/register", async (req, res, next) => {
   }
 });
 
+
 // Kullanıcı Girişi (Login)
 router.post("/login", async (req, res) => {
   try {
     const { email, password } = req.body;
 
+    // Kullanıcıyı bul
     const user = await Users.findOne({ email });
     if (!user) {
       return res.status(401).json({ message: "E-mail veya şifre hatalı" });
     }
 
+    // Şifreyi kontrol et
     const isValidPassword = await bcrypt.compare(password, user.password);
     if (!isValidPassword) {
       return res.status(401).json({ message: "E-mail veya şifre hatalı" });
     }
 
+    // Token oluştur
     const token = jwt.sign(
       { _id: user._id, email: user.email, role: user.role },
       process.env.JWT_SECRET,
       { expiresIn: "1h" }
     );
 
-    res
-      .cookie("token", token, {
-        httpOnly: true,
-        secure: isProd,
-        sameSite: isProd ? "None" : "Lax",
-        domain: isProd ? ".tercihsepetim.com" : undefined,
-        path: "/",
-        maxAge: 1000 * 60 * 60, // 1 saat
-      })
-      .status(200)
-      .json({
-        user: { _id: user._id, email: user.email, role: user.role },
-      });
+    const isProd = process.env.NODE_ENV === "production";
+
+    // ---- WEB İÇİN COOKIE ----
+    res.cookie("token", token, {
+      httpOnly: true,
+      secure: isProd,
+      sameSite: isProd ? "None" : "Lax",
+      domain: isProd ? ".tercihsepetim.com" : undefined,
+      path: "/",
+      maxAge: 1000 * 60 * 60, // 1 saat
+    });
+
+    // ---- MOBİL İÇİN JSON ----
+    return res.status(200).json({
+      success: true,
+      user: {
+        _id: user._id,
+        email: user.email,
+        role: user.role,
+      },
+      token, // Mobil uygulama buradan alacak
+      message: "Giriş başarılı",
+    });
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: "Sunucu hatası." });
+    console.error("Login Error:", error);
+    return res.status(500).json({ error: "Sunucu hatası." });
   }
 });
+
+
 
 
 // Token doğrulaması yapacak check endpoint
@@ -253,5 +269,32 @@ router.post("/google", async (req, res, next) => {
     return next(ApiError.internal("Google ile giriş yapılamadı."));
   }
 });
+
+
+
+//MOBİL
+
+
+router.post("/register-phone", async (req, res) => {
+  const { phoneNumber } = req.body;
+
+  if (!phoneNumber) {
+    return res.status(400).json({ message: "Telefon numarası zorunlu." });
+  }
+
+  let code = Math.floor(100000 + Math.random() * 900000); // 6 haneli
+  let expires = Date.now() + 5 * 60 * 1000; // 5 dakika geçerli
+
+  await Verification.create({
+    phoneNumber,
+    code,
+    expires
+  });
+
+  // burada SMS API ile kod gönderilir
+
+  res.json({ message: "Doğrulama kodu gönderildi." });
+});
+
 
 export default router;

@@ -14,7 +14,7 @@ export default function BottomTabs() {
         <Text style={styles.label}>Anasayfa</Text>
       </TouchableOpacity>
 
-      <TouchableOpacity style={styles.tabItem}>
+      <TouchableOpacity style={styles.tabItem}onPress={() => navigation.navigate("Favorite")}>
         <MaterialIcons name="favorite-border" size={28} />
         <Text style={styles.label}>Listelerim</Text>
       </TouchableOpacity>

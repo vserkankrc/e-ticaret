@@ -43,28 +43,34 @@ app.use(express.json());
 app.use(logger(process.env.LOGGER || "dev"));
 app.use(helmet());
 
-
 // İzin verilen frontend listesi
-const allowedOrigins = ["http://localhost:5174", "http://localhost:5173"];
+const allowedOrigins = [
+  "http://localhost:5173",
+  "http://localhost:5174",
+  "http://192.168.1.106",
+  "http://192.168.1.106:5173",
+  "http://192.168.1.106:5174",
+  "http://192.168.1.106:3000",
+  "https://192.168.1.106",
+  "https://192.168.1.106:3000",
+  "https://192.168.1.106:443",
+];
 
 app.use(
   cors({
     origin: function (origin, callback) {
-      // Eğer istek frontend’den geliyorsa veya postman gibi tool’dan geliyorsa
       if (!origin || allowedOrigins.includes(origin)) {
         callback(null, true);
       } else {
-        callback(new Error("CORS policy: Bu origin izinli değil."));
+        callback(new Error("CORS policy: Bu origin izinli değil. → " + origin));
       }
     },
-    credentials: true, // cookie gönderimi için gerekli
+    credentials: true,
   })
 );
 
 app.use(cookieParser());
 app.use(express.json());
-
-
 
 // Passport JWT stratejisi
 passport.serializeUser((user, done) => done(null, user));
@@ -75,9 +81,7 @@ const JwtOpts = {
     let token = null;
     if (req && req.cookies?.token) {
       token = req.cookies.token;
-      if (token.startsWith("Bearer ")) {
-        token = token.split(" ")[1];
-      }
+      if (token.startsWith("Bearer ")) token = token.split(" ")[1];
     }
     return token;
   },
@@ -102,16 +106,19 @@ app.use(passport.initialize());
 app.use("/api", mainRoute);
 mainRoute.get("/", (req, res) => res.send("API Root"));
 
-// Admin paneli ve tüm React sayfaları için dist serve
-app.use("/admin", express.static(path.join(__dirname, "dist")));
+// 🔹 FRONTEND SERVE - Yapı bozulmadan güncellendi
+const frontendDistPath = path.join(__dirname, "../frontend/dist");
+
+// Admin paneli
+app.use("/admin", express.static(frontendDistPath));
 app.get("/admin/*", (req, res) => {
-  res.sendFile(path.join(__dirname, "dist", "index.html"));
+  res.sendFile(path.join(frontendDistPath, "index.html"));
 });
 
-// Genel React sayfaları için
-app.use(express.static(path.join(__dirname, "dist")));
+// Genel React sayfaları
+app.use(express.static(frontendDistPath));
 app.get("*", (req, res) => {
-  res.sendFile(path.join(__dirname, "dist", "index.html"));
+  res.sendFile(path.join(frontendDistPath, "index.html"));
 });
 
 // JWT test endpoint
@@ -124,7 +131,7 @@ app.use(GenericErrorHandler);
 
 // PORT ve host ayarları
 const PORT = process.env.PORT || 3000;
-const HOST = "0.0.0.0"; // Dış erişim için 0.0.0.0 olmalı
+const HOST = "0.0.0.0";
 
 // HTTPS kontrolü
 if (process.env.HTTPS_ENABLED === "true") {
@@ -133,12 +140,9 @@ if (process.env.HTTPS_ENABLED === "true") {
 
   connect();
 
-  https
-    .createServer({ key, cert }, app)
-    .listen(PORT, HOST, () => {
-      console.log(`🔐 HTTPS sunucu çalışıyor → https://${HOST}:${PORT}`);
-      
-    });
+  https.createServer({ key, cert }, app).listen(PORT, HOST, () => {
+    console.log(`🔐 HTTPS sunucu çalışıyor → https://${HOST}:${PORT}`);
+  });
 } else {
   app.listen(PORT, HOST, () => {
     connect();
