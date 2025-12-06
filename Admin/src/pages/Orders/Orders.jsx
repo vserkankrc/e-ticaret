@@ -147,6 +147,14 @@ const OrdersList = ({ orders, updateStatus, updating }) => {
             ? "✅ Ödendi"
             : "❌ Beklemede"}
         </p>
+
+        {/* 🔹 Teslimat Adresi */}
+        {order.address && (
+          <div className="order-address" style={{ marginTop: "8px" }}>
+            <strong>Teslimat Adresi:</strong>{" "}
+            {`${order.address.addressDetail}, ${order.address.district}, ${order.address.province} - ${order.address.postalCode}`}
+          </div>
+        )}
       </div>
 
       {/* 🔹 Ürünler */}
@@ -206,5 +214,6 @@ const OrdersList = ({ orders, updateStatus, updating }) => {
     </div>
   ));
 };
+
 
 export default Orders;

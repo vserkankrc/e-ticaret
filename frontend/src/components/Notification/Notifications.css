@@ -1,0 +1,76 @@
+/* Notifications.css */
+.notifications-container {
+  max-width: 600px;
+  margin: 40px auto;
+  padding: 20px;
+  background: #f9f9f9; /* sayfa arka planı */
+  border-radius: 10px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+.notifications-container h2 {
+  text-align: center;
+  margin-bottom: 20px;
+  color: #333;
+}
+
+.notification-item {
+  background: #fff;
+  padding: 15px 20px;
+  margin-bottom: 12px;
+  border-radius: 8px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  transition: all 0.3s ease;
+}
+
+.notification-item.read {
+  opacity: 0.6;
+  background: #f0f0f0;
+}
+
+.notification-message {
+  font-size: 15px;
+  color: #333;
+  word-break: break-word;
+  flex: 1;
+}
+
+.notification-actions {
+  display: flex;
+  gap: 10px;
+  margin-left: 15px;
+}
+
+.notification-actions button {
+  padding: 5px 12px;
+  font-size: 14px;
+  cursor: pointer;
+  border-radius: 6px;
+  border: none;
+  transition: all 0.2s ease;
+}
+
+.notification-actions button:hover {
+  opacity: 0.85;
+}
+
+.btn-read {
+  background: #4caf50;
+  color: white;
+}
+
+.btn-hide {
+  background: #e53935;
+  color: white;
+}
+
+.empty {
+  text-align: center;
+  color: #888;
+  margin-top: 40px;
+  font-size: 16px;
+}

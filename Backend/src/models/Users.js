@@ -3,11 +3,10 @@ import nanoid from "../utils/nanoid.js";
 
 const { Schema } = mongoose;
 
-// Adres şeması: artık alanlar required değil.
-// Böylece kullanıcı henüz adres eklememişse hata oluşmaz.
+// Adres şeması
 const addressSchema = new Schema(
   {
-    label: { type: String, default: "" }, // Örn: "Ev", "Ofis"
+    label: { type: String, default: "" },
     address: { type: String, default: "" },
     province: { type: String, default: "" },
     district: { type: String, default: "" },
@@ -31,10 +30,11 @@ const UsersSchema = new Schema(
 
     email: { type: String, required: true, unique: true },
 
-    // Şifre yalnızca OAuth olmayan kullanıcılar için zorunlu
-    password: { 
-      type: String, 
-      required: function () { return !this.isOAuthUser; } 
+    password: {
+      type: String,
+      required: function () {
+        return !this.isOAuthUser;
+      },
     },
 
     phoneNumber: { type: String, required: true, unique: true },
@@ -42,7 +42,7 @@ const UsersSchema = new Schema(
     gender: {
       type: String,
       enum: ["Erkek", "Kadın", "Diğer"],
-      default: "diğer",
+      default: null,
     },
 
     tcIdentityNumber: {
@@ -62,12 +62,10 @@ const UsersSchema = new Schema(
       default: "bireysel",
     },
 
-    // Kurumsal kullanıcılar için isteğe bağlı alanlar
     companyName: { type: String, default: null },
     taxNumber: { type: String, default: null },
     taxOffice: { type: String, default: null },
 
-    // Adres alanları: yalnızca kullanıcı eklerse eklenir, sistem müdahale etmez
     personalAddress: {
       type: addressSchema,
       default: null,
@@ -86,7 +84,7 @@ const UsersSchema = new Schema(
     ip: {
       type: String,
       required: true,
-      default: "85.34.78.112", // gerçek IP yerine dummy değer
+      default: "85.34.78.112",
     },
 
     role: {
@@ -99,7 +97,7 @@ const UsersSchema = new Schema(
     resetTokenExpiration: { type: Date, default: null },
 
     // Google OAuth alanları
-    googleId: { type: String, unique: true, sparse: true, default: null },
+    googleId: { type: String, unique: true, sparse: true, default: null }, // Düzeltilmiş
     avatar: { type: String, default: null },
     isOAuthUser: { type: Boolean, default: false },
   },

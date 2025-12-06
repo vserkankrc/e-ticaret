@@ -16,7 +16,7 @@ import ProfilePages from "./pages/Profil/ProfilePage";
 import CookieConsent from "./components/Modals/CookieConsent/CookieConsent.jsx";
 import StaticPage from "./pages/Admin/Pages/StaticPage/StaticPage.jsx";
 
-
+import Notification from "./components/Notification/Notification.jsx";
 
 
 import "./App.css";
@@ -49,6 +49,9 @@ function App() {
         {/* Kullanıcı Profili */}
         <Route path="/profile/*" element={<ProfilePages />} />
 
+        {/* Bildirimler */}
+
+        <Route path="/notifications" element={<Notification/>}/>
        
         
       

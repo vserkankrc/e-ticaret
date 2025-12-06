@@ -7,18 +7,19 @@ import jwt from "jsonwebtoken";
 
 const router = express.Router();
 const isProd = process.env.NODE_ENV === "production"; // burayı importlardan sonra yaz
+
 // Kullanıcı Oluşturma (Register)
 router.post("/register", async (req, res, next) => {
   try {
     const { name, surname, email, password, phoneNumber } = req.body;
 
     if (!name || !surname || !email || !password || !phoneNumber) {
-      return next(ApiError.badRequest("Tüm alanlar zorunludur."));
+      return next(ApiError.BadRequest("Tüm alanlar zorunludur."));
     }
 
     const existingUser = await Users.findOne({ email });
     if (existingUser) {
-      return next(ApiError.badRequest("Bu e-posta zaten kullanılıyor."));
+      return next(ApiError.BadRequest("Bu e-posta zaten kullanılıyor."));
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
@@ -29,6 +30,7 @@ router.post("/register", async (req, res, next) => {
       email,
       password: hashedPassword,
       phoneNumber,
+      googleId: undefined, // unique null hatasını önlemek için undefined
     });
 
     await newUser.save();
@@ -42,9 +44,9 @@ router.post("/register", async (req, res, next) => {
     res
       .cookie("token", token, {
         httpOnly: true,
-        secure: isProd,                  // prod için https
-        sameSite: isProd ? "None" : "Lax", // cross-site destek
-        domain: isProd ? ".tercihsepetim.com" : undefined, // localhost için domain yok
+        secure: isProd,
+        sameSite: isProd ? "None" : "Lax",
+        domain: isProd ? ".tercihsepetim.com" : undefined,
         path: "/",
         maxAge: 1000 * 60 * 60 * 24 * 7, // 7 gün
       })
@@ -62,7 +64,7 @@ router.post("/register", async (req, res, next) => {
       });
   } catch (error) {
     console.error(error);
-    return next(ApiError.internal("Sunucu hatası."));
+    return next(ApiError.InternalServerError()); // burayı düzelttik
   }
 });
 

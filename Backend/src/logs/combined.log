@@ -156,3 +156,19 @@
 {"level":"info","message":"[cancel-approve] İade edilecek tutar: 360 - Sipariş: 6908eaca96ca6a802d98f34a"}
 {"level":"error","message":"[cancel-approve] İade hatası: Üye işyerinin bakiyesi bu iadeyi yapmak için yetersiz - Sipariş: 6908eaca96ca6a802d98f34a"}
 {"level":"info","message":"Ödeme başarıyla gerçekleşti","paymentId":"27554129","price":"99","type":"payment-success","userEmail":"serkan_krc@outlook.com"}
+{"level":"info","message":"Ödeme başarıyla gerçekleşti","paymentId":"27824451","price":"35000","type":"payment-success","userEmail":"alihan@test.com"}
+{"errorCode":"5177","errorMessage":"Sadece Sandbox kredi kartları ile ödeme yapılabilir","level":"warn","message":"İyzico ödemesi reddedildi","type":"payment-declined","userEmail":"serkan_krc@outlook.com"}
+{"level":"info","message":"Ödeme başarıyla gerçekleşti","paymentId":"27824526","price":"110","type":"payment-success","userEmail":"alihan@test.com"}
+{"level":"info","message":"Ödeme başarıyla gerçekleşti","paymentId":"27824519","price":"110","type":"payment-success","userEmail":"alihan@test.com"}
+{"level":"warn","message":"[2025-11-30T17:46:00.120Z] ❌ Kullanıcı 683b3e27d919ba49c1efae29 için sipariş bulunamadı: 692c8292edd62f549d7f6f9c"}
+{"level":"info","message":"[2025-11-30T17:47:25.036Z] ✅ alihan@test.com (692c09059e5428bb2e0550fc) için iptal maili başarıyla gönderildi. Sipariş: 692c8292edd62f549d7f6f9c"}
+{"level":"info","message":"[cancel-approve] Sipariş verisi getirildi: 692c8292edd62f549d7f6f9c"}
+{"level":"info","message":"[cancel-approve] Kullanılacak transactionId: 29789903"}
+{"level":"info","message":"[cancel-approve] İade edilecek tutar: 110 - Sipariş: 692c8292edd62f549d7f6f9c"}
+{"level":"error","message":"[cancel-approve] İade hatası: Üye işyerinin bakiyesi bu iadeyi yapmak için yetersiz - Sipariş: 692c8292edd62f549d7f6f9c"}
+{"level":"info","message":"[cancel-approve] Sipariş verisi getirildi: 692c8292edd62f549d7f6f9c"}
+{"level":"info","message":"[cancel-approve] Kullanılacak transactionId: 29789903"}
+{"level":"info","message":"[cancel-approve] İade edilecek tutar: 110 - Sipariş: 692c8292edd62f549d7f6f9c"}
+{"level":"error","message":"[cancel-approve] İade hatası: Üye işyerinin bakiyesi bu iadeyi yapmak için yetersiz - Sipariş: 692c8292edd62f549d7f6f9c"}
+{"errorCode":"5177","errorMessage":"Sadece Sandbox kredi kartları ile ödeme yapılabilir","level":"warn","message":"İyzico ödemesi reddedildi","type":"payment-declined","userEmail":"alihan@test.com"}
+{"level":"info","message":"Ödeme başarıyla gerçekleşti","paymentId":"27824574","price":"110","type":"payment-success","userEmail":"alihan@test.com"}

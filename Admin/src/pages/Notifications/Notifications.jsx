@@ -5,7 +5,7 @@ import axios from "../../utils/axios";
 const { TextArea } = Input;
 const { Option } = Select;
 
-const Notifications = () => {
+const NotificationsAdmin = () => {
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
@@ -26,7 +26,7 @@ const Notifications = () => {
     }
   };
 
-  // Kullanıcıları çek (toplu gönderim için)
+  // Kullanıcıları çek (toplu veya tek kullanıcı seçimi için)
   const fetchUsers = async () => {
     try {
       const res = await axios.get("/api/users", { withCredentials: true });
@@ -60,7 +60,7 @@ const Notifications = () => {
         "/api/notifications/send",
         {
           message: values.message,
-          userIds: values.users,
+          userIds: values.users?.length ? values.users : [], // boşsa tüm kullanıcıya
         },
         { withCredentials: true }
       );
@@ -143,7 +143,11 @@ const Notifications = () => {
           </Form.Item>
 
           <Form.Item label="Kullanıcılar (boş bırakılırsa tüm kullanıcılar)">
-            <Select mode="multiple" placeholder="Seçmek için kullanıcıları seçin" allowClear>
+            <Select
+              mode="multiple"
+              placeholder="Seçmek için kullanıcıları seçin"
+              allowClear
+            >
               {users.map((u) => (
                 <Option key={u._id} value={u._id}>
                   {u.name} ({u.email})
@@ -163,4 +167,4 @@ const Notifications = () => {
   );
 };
 
-export default Notifications;
+export default NotificationsAdmin;
